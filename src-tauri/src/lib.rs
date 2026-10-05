@@ -81,18 +81,18 @@ pub fn run(){
             #[cfg(desktop)]
             {
                 use tauri_plugin_global_shortcut::{Code,Modifiers,ShortcutState};
-                // Requested as plain Shift+C / Shift+F; while the app runs these keys are taken system-wide.
-                app.handle().plugin(tauri_plugin_global_shortcut::Builder::new().with_shortcuts(["shift+KeyC","shift+KeyF"])?
+                // Requested as plain Alt+Shift+C / Alt+Shift+F; while the app runs these keys are taken system-wide.
+                app.handle().plugin(tauri_plugin_global_shortcut::Builder::new().with_shortcuts(["alt+shift+KeyC","alt+shift+KeyF"])?
                     .with_handler(|app,shortcut,event|{
                         if event.state!=ShortcutState::Pressed{return;}
-                        if shortcut.matches(Modifiers::SHIFT,Code::KeyC){route_shortcut(app,"config");}
-                        else if shortcut.matches(Modifiers::SHIFT,Code::KeyF){route_shortcut(app,"focus");}
+                        if shortcut.matches(Modifiers::ALT | Modifiers::SHIFT,Code::KeyC){route_shortcut(app,"config");}
+                        else if shortcut.matches(Modifiers::ALT | Modifiers::SHIFT,Code::KeyF){route_shortcut(app,"focus");}
                     }).build())?;
             }
             watch_overlay_hover(app.handle().clone());
             let show=MenuItem::with_id(app,"settings","Settings",true,None::<&str>)?;
             let overlay=MenuItem::with_id(app,"overlay","Show overlay",true,None::<&str>)?;
-            let unlock=MenuItem::with_id(app,"unlock","Customize overlay (Shift+C)",true,None::<&str>)?;
+            let unlock=MenuItem::with_id(app,"unlock","Customize overlay (Alt+Shift+C)",true,None::<&str>)?;
             let hide=MenuItem::with_id(app,"hide","Hide overlay",true,None::<&str>)?;
             let quit=MenuItem::with_id(app,"quit","Quit",true,None::<&str>)?;
             let menu=Menu::with_items(app,&[&show,&overlay,&unlock,&hide,&quit])?;

@@ -1,0 +1,10 @@
+{
+    "version":  "0.1.0-alpha.1",
+    "artifact":  "artifacts/Floating-Lyrics-Preview-0.1.0-alpha.1-Windows-x64.exe",
+    "bytes":  6226692,
+    "sha256":  "d550cc36dfd2a1d7c93a71c98d5267367e5d2535831dccc94b6f403795922799",
+    "signed":  false,
+    "webE2e":  "18/18 Edge, 18/18 Chromium, WebKit tour passed (3 audio failures); Firefox page launch failed",
+    "nativeFixture":  "Startup created two visible windows in isolated debug profile; CDP fixture unavailable in this run",
+    "extensionFixture":  "6/6 on previous preview; not rerun"
+}

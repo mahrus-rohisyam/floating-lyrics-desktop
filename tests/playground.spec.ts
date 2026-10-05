@@ -1,6 +1,24 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-test.beforeEach(async({page})=>{await page.goto('/demo');await page.evaluate(()=>document.fonts.ready);});
+test.beforeEach(async({page},testInfo)=>{if(!testInfo.title.startsWith('first-run tour'))await page.addInitScript(()=>localStorage.setItem('floating:tour:v1','done'));await page.goto('/demo');await page.evaluate(()=>document.fonts.ready);});
+test('first-run tour can be skipped, resumed, and completed',async({page})=>{
+  const tour=page.getByTestId('tour');
+  await expect(tour).toBeVisible();
+  await expect(tour.getByRole('heading')).toHaveText('Your lyrics are ready');
+  await tour.getByRole('button',{name:'Next'}).click();
+  await expect(tour.getByRole('heading')).toHaveText('Play a song');
+  await tour.getByRole('button',{name:'Skip tour'}).click();
+  await expect(tour).toHaveCount(0);
+  await page.reload();
+  await expect(tour).toHaveCount(0);
+  await page.getByRole('button',{name:'Quick tour'}).click();
+  await expect(tour.getByRole('heading')).toHaveText('Your lyrics are ready');
+  for(let i=0;i<3;i++)await tour.getByRole('button',{name:'Next'}).click();
+  await expect(tour.getByRole('heading')).toHaveText('Stay focused');
+  await tour.getByRole('button',{name:'Finish'}).click();
+  await expect(tour).toHaveCount(0);
+  await expect(page.getByTestId('lyrics-surface')).toHaveClass(/preset-caption/);
+});
 test('plays real audio, seeks synced lyrics, pauses and stops',async({page})=>{
   await expect(page.getByTestId('active-lyric')).toHaveText('Let the world slow down');
   await page.getByRole('button',{name:'Play',exact:true}).click();
@@ -13,6 +31,20 @@ test('plays real audio, seeks synced lyrics, pauses and stops',async({page})=>{
   await page.getByRole('button',{name:'Stop',exact:true}).click();
   await expect(page.getByTestId('playback-time')).toHaveText('0:00');
   await expect(page.getByTestId('active-lyric')).toHaveText('Let the world slow down');
+});
+test('caption is the default, scrolls to the current line, and backgrounds only words',async({page})=>{
+  const surface=page.getByTestId('lyrics-surface');
+  await expect(surface).toHaveClass(/preset-caption/);
+  await expect(surface).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  const active=page.getByTestId('active-lyric');
+  await expect(active.locator('.lyric-text')).toHaveCSS('background-color',/rgba\(8, 18, 13, 0\.76\)/);
+  await expect(page.locator('.lyric-line:not(.active)').first()).toHaveCSS('filter',/blur/);
+  const before=await active.evaluate(e=>getComputedStyle(e).transform);
+  await page.getByLabel('Seek',{exact:true}).fill('12.5');
+  await expect(page.getByTestId('active-lyric')).toHaveText('And everything feels lighter');
+  await expect.poll(async()=>page.getByTestId('active-lyric').evaluate(e=>getComputedStyle(e).transform)).not.toBe(before);
+  await page.getByRole('button',{name:'Minimal',exact:true}).click();
+  await expect(page.getByTestId('lyrics-surface')).toHaveClass(/preset-minimal/);
 });
 test('track selection resets playback and renders non-Latin words',async({page})=>{
   await page.getByRole('button',{name:'Next track'}).click();await expect(page.getByTestId('active-lyric')).toHaveText('Across the sleeping city');
@@ -29,7 +61,7 @@ test('persists custom appearance across reload and recovers presets',async({page
 test('drag moves overlay and all four corners resize it',async({page})=>{
   await page.getByTestId('desktop-scene').scrollIntoViewIfNeeded();
   await expect(page.getByRole('button',{name:'Move overlay'})).toHaveCount(0);
-  await page.keyboard.press('Shift+C');
+  await page.keyboard.press('Alt+Shift+C');
   const overlay=page.getByTestId('overlay');const start=(await overlay.boundingBox())!;
   const grip=(await page.getByRole('button',{name:'Move overlay'}).boundingBox())!;
   await page.mouse.move(grip.x+grip.width/2,grip.y+grip.height/2);await page.mouse.down();await page.mouse.move(grip.x+grip.width/2+20,grip.y+grip.height/2+20,{steps:5});await page.mouse.up();
@@ -65,16 +97,22 @@ test('lyrics return to their last spot after the island',async({page})=>{
   await page.getByRole('button',{name:'Floating lyrics'}).click();const back=(await page.getByTestId('overlay').boundingBox())!;
   expect(back.x).toBeCloseTo(placed.x,0);expect(back.y).toBeCloseTo(placed.y,0);
 });
-test('Shift+F focus mode only peeks on track change',async({page})=>{
-  await page.locator('body').click({position:{x:5,y:5}});await page.keyboard.press('Shift+F');
+test('Alt+Shift+F focus mode only peeks on track change',async({page})=>{
+  await page.locator('body').click({position:{x:5,y:5}});await page.keyboard.press('Alt+Shift+F');
   const peek=page.getByTestId('focus-peek');await expect(peek).toHaveAttribute('data-shown','true');
   await expect(peek).toHaveAttribute('data-shown','false',{timeout:6000});
   await page.getByRole('button',{name:'Next track'}).click();await expect(peek).toHaveAttribute('data-shown','true');await expect(peek).toContainText('Blue Hour');
-  await page.keyboard.press('Shift+F');await expect(peek).toHaveCount(0);await expect(page.getByTestId('lyrics-surface')).toBeVisible();
+  await page.keyboard.press('Alt+Shift+F');await expect(peek).toHaveCount(0);await expect(page.getByTestId('lyrics-surface')).toBeVisible();
 });
 test('Island expands on intent, renders spectrum from audio, and collapses after leaving',async({page})=>{
   await page.getByRole('button',{name:'Focus Island'}).click();const island=page.getByTestId('island');
-  await expect(island).toHaveAttribute('data-expanded','false');await island.hover();await expect(island).toHaveAttribute('data-expanded','true');
+  await expect(island).toHaveAttribute('data-expanded','false');
+  const compact=(await island.boundingBox())!;
+  await island.hover();await expect(island).toHaveAttribute('data-expanded','true');
+  const open=(await island.boundingBox())!;
+  expect(open.x+open.width/2).toBeCloseTo(compact.x+compact.width/2,0);
+  expect(open.y).toBeCloseTo(compact.y,0);
+  await expect(page.getByRole('button',{name:'Move overlay'})).toHaveCount(0);
   await island.getByRole('button',{name:'Play',exact:true}).click();
   if(await page.evaluate(()=>typeof AudioContext==='function')){
     await expect.poll(async()=>island.getByTestId('spectrum').locator('span').evaluateAll(nodes=>nodes.some(n=>parseFloat((n as HTMLElement).style.height)>5))).toBe(true);

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased local preview
+
+- Added a skippable four-step onboarding tour with a Quick tour replay control.
+- Desktop now opens the Caption overlay at startup by default, with a saved toggle to disable automatic opening.
+- Caption is now the default: only each lyric line gets a dark background, with smooth vertical movement and a slight blur on adjacent lines. The larger panel styles remain optional.
+- Fixed the native Island's transparent corners and retained its top-center position when expanding or collapsing.
+- Replaced the broad Shift+C/F global shortcuts with Alt+Shift+C/F, so ordinary uppercase typing is unaffected.
+- Enabled Windows system-audio spectrum by default while a track plays in Island/Focus mode; users can switch it off. Confirmed moving UI bars against real audio in the native extension fixture test.
+- The updated local installer is built separately from the running alpha executable; these changes are not yet published as a GitHub release.
+
 ## 0.1.0-alpha.1 — 2026-10-05
 
 First public alpha. Expect rough edges; settings may be reset between alpha builds.

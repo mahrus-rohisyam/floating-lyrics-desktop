@@ -6,10 +6,13 @@ import { useAudio } from './useAudio';
 import { native, openOverlay, browserPairing, showSettings } from './native';
 import { useNativePlayer } from './useNativePlayer';
 import { useSpectrum } from './useSpectrum';
+import { listen } from '@tauri-apps/api/event';
+import { Tour, tourKey } from './Tour';
 
 const storageKey='floating:settings:v1';
 const params=new URLSearchParams(location.search);
 const overlayWindow = native && params.has('overlay');
+let autoOverlayAttempted = false;
 /** Set when a global shortcut had to create the overlay window first. */
 const startAction = overlayWindow ? params.get('start') : null;
 type Player = { title:string; artist:string; album:string; artwork:string; playing:boolean; position:number; duration:number; bands:number[]; pending:boolean;
@@ -27,7 +30,7 @@ function Transport({player,compact=false}:{player:Player;compact?:boolean}) {
   </div>;
 }
 function Spectrum({bands,playing,reduced}:{bands:number[];playing:boolean;reduced:boolean}) {
-  return <div className="spectrum" data-testid="spectrum" data-active={playing&&!reduced} aria-hidden="true">{bands.map((v,i)=><span key={i} style={{height:`${playing&&!reduced?4+Math.min(1,v*2.5)*23:4}px`}}/>)}</div>;
+  return <div className="spectrum" data-testid="spectrum" data-active={playing&&!reduced} aria-hidden="true">{bands.map((v,i)=><span key={i} style={{height:`${playing&&!reduced?4+Math.min(1,v*3.2)*24:4}px`}}/>)}</div>;
 }
 const ease='cubic-bezier(.16,1,.3,1)';
 function LyricStream({lyrics,index,lines,align,reduced}:{lyrics:LyricLine[];index:number;lines:number;align:Settings['align'];reduced:boolean}) {
@@ -56,11 +59,11 @@ function LyricStream({lyrics,index,lines,align,reduced}:{lyrics:LyricLine[];inde
     <div className="lyric-track" ref={track}>{lyrics.map((line,i)=>{
       const d=i-anchor, active=i===index;
       const visible=lines===1?d===0:lines===2?d===0||d===1:Math.abs(d)<=1;
-      const blur=active?0:visible?1.6:5;
+      const blur=active?0:visible?.8:3;
       return <div key={i} className={`lyric-line ${active?'active':''}`} data-testid={active?'active-lyric':undefined} aria-hidden={!visible||undefined}
-        style={{transform:`translate3d(0,${shift}px,0) scale(${active?1:.86})`,transformOrigin:origin,opacity:active?1:visible?.42:0,filter:blur?`blur(${blur}px)`:'none',
-          transitionProperty:animate?'transform,opacity,filter':'none',transitionDuration:'.75s,.55s,.55s',transitionTimingFunction:ease,
-          transitionDelay:animate&&d>0?`${Math.min(d,5)*45}ms`:'0ms'}}>{line.text||' '}</div>;
+        style={{transform:`translate3d(0,${shift}px,0) scale(${active?1:.92})`,transformOrigin:origin,opacity:active?1:visible?.58:0,filter:blur?`blur(${blur}px)`:'none',
+          transitionProperty:animate?'transform,opacity,filter':'none',transitionDuration:'.82s,.64s,.64s',transitionTimingFunction:ease,
+          transitionDelay:animate&&d>0?`${Math.min(d,5)*35}ms`:'0ms'}}><span className="lyric-text">{line.text||' '}</span></div>;
     })}</div>
   </div>;
 }
@@ -86,11 +89,11 @@ function ConfigBar({settings,setSettings,onDone,onIsland,onMore}:{settings:Setti
       {panel==='layout'&&<div className="config-stack">
         <div className="config-segments" role="group" aria-label="Visible lines">{[1,2,3].map(n=><button key={n} type="button" aria-pressed={settings.lines===n} onClick={()=>set('lines',n)}>{n} line{n>1?'s':''}</button>)}</div>
         <div className="config-segments" role="group" aria-label="Alignment">{([['left',<TextAlignStart key="l" size={14}/>],['center',<TextAlignCenter key="c" size={14}/>],['right',<TextAlignEnd key="r" size={14}/>]] as const).map(([a,icon])=><button key={a} type="button" aria-label={`Align ${a}`} aria-pressed={settings.align===a} onClick={()=>set('align',a)}>{icon}</button>)}</div>
-        <div className="config-segments" role="group" aria-label="Style">{(['minimal','subtitle','card'] as const).map(p=><button key={p} type="button" aria-pressed={settings.preset===p} onClick={()=>setSettings(s=>({...s,preset:p,opacity:p==='card'?82:p==='minimal'?28:0}))}>{p[0].toUpperCase()+p.slice(1)}</button>)}</div>
+        <div className="config-segments" role="group" aria-label="Style">{(['caption','minimal','subtitle','card'] as const).map(p=><button key={p} type="button" aria-pressed={settings.preset===p} onClick={()=>setSettings(s=>({...s,preset:p,opacity:p==='card'?82:p==='caption'?76:p==='minimal'?28:0}))}>{p[0].toUpperCase()+p.slice(1)}</button>)}</div>
       </div>}
     </div>}
     <div className="config-row">
-      <label className="config-opacity" title="Background opacity"><span className="sr-only">Background opacity</span><input aria-label="Background opacity" type="range" min="0" max="100" value={settings.opacity} onChange={e=>setSettings(s=>({...s,opacity:Number(e.target.value),preset:s.preset==='subtitle'?'minimal':s.preset}))}/></label>
+      <label className="config-opacity" title="Background opacity"><span className="sr-only">Background opacity</span><input aria-label="Background opacity" type="range" min="0" max="100" value={settings.opacity} onChange={e=>setSettings(s=>({...s,opacity:Number(e.target.value),preset:s.preset==='subtitle'?'caption':s.preset}))}/></label>
       <div className="config-tools">
         {tool('color','Lyric color',<span className="rainbow" style={{boxShadow:`inset 0 0 0 3px ${settings.color}`}}/>)}
         {tool('font','Font',<Type size={17}/>)}
@@ -98,7 +101,7 @@ function ConfigBar({settings,setSettings,onDone,onIsland,onMore}:{settings:Setti
         {tool('layout','Lines and alignment',<TextAlignJustify size={17}/>)}
         <button type="button" className="config-tool" aria-label="Switch to Focus Island" title="Focus Island" onClick={onIsland}><span className="pill-icon"/></button>
         <button type="button" className="config-tool" aria-label="All settings" title="All settings" onClick={onMore}><SettingsIcon size={17}/></button>
-        <button type="button" className="config-tool done" aria-label="Done customizing" title="Done (Shift+C)" onClick={onDone}><ArrowLeft size={18}/></button>
+        <button type="button" className="config-tool done" aria-label="Done customizing" title="Done (Alt+Shift+C)" onClick={onDone}><ArrowLeft size={18}/></button>
       </div>
     </div>
     <div className="config-tip"><span>Scroll</span><Mouse size={12}/><span>to adjust lyric font size</span></div>
@@ -187,7 +190,7 @@ function Overlay({settings,setSettings,player,lyrics,plain='',status='',size,tra
   useEffect(()=>{
     if(overlayWindow){
       let disposed=false,unlisten:(()=>void)|undefined;
-      void import('@tauri-apps/api/event').then(async({listen})=>{const off=await listen<boolean>('overlay:hover',e=>setHovered(e.payload));if(disposed)off();else unlisten=off;});
+      void (async()=>{const off=await listen<boolean>('overlay:hover',e=>setHovered(e.payload));if(disposed)off();else unlisten=off;})();
       return()=>{disposed=true;unlisten?.();};
     }
     const move=(e:PointerEvent)=>{const r=host.current?.getBoundingClientRect();setHovered(!!r&&e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom);};
@@ -253,7 +256,7 @@ function Overlay({settings,setSettings,player,lyrics,plain='',status='',size,tra
       if(arrows[e.key]){e.preventDefault();const [dx,dy]=arrows[e.key];setSettings(s=>({...s,bounds:constrainBounds({...s.bounds,x:bounds.x+dx,y:bounds.y+dy},size.width,size.height)}));}
     }}><Grip size={14}/></button>}
     <div className={`lyrics-surface preset-${settings.preset} ${settings.songInfo?'with-info':'lyrics-only'}`} onPointerDown={e=>begin(e)}
-      style={{fontSize:settings.fontSize,fontWeight:settings.weight,fontFamily:fonts[settings.font][1],color:settings.color,textAlign:settings.align,background:settings.preset==='subtitle'?'transparent':`rgba(10,22,16,${settings.opacity/100})`}} data-testid="lyrics-surface">
+      style={{fontSize:settings.fontSize,fontWeight:settings.weight,fontFamily:fonts[settings.font][1],color:settings.color,textAlign:settings.align,background:settings.preset==='subtitle'||settings.preset==='caption'?'transparent':`rgba(10,22,16,${settings.opacity/100})`,'--caption-opacity':settings.opacity/100} as CSSProperties} data-testid="lyrics-surface">
       {lyrics.length?<LyricStream lyrics={lyrics} index={index} lines={settings.lines} align={settings.align} reduced={settings.reducedMotion}/>:<div className="lyric-placeholder">{plain||status||'Waiting for lyrics'}</div>}
       {settings.songInfo&&<SongInfo player={player}/>}
     </div>
@@ -269,9 +272,11 @@ export default function App(){
   const [settings,setSettings]=useState<Settings>(()=>{try{return readSettings(localStorage.getItem(storageKey));}catch{return structuredClone(defaults);}});
   const [storageWarning,setStorageWarning]=useState(false), [tab,setTab]=useState<'appearance'|'behavior'>('appearance');
   const [light,setLight]=useState(false),[showHelp,setShowHelp]=useState(false),[nativeError,setNativeError]=useState('');
+  const [tourOpen,setTourOpen]=useState(()=>{if(overlayWindow)return false;try{return localStorage.getItem(tourKey)!=='done';}catch{return true;}});
+  const [autoOverlay,setAutoOverlay]=useState(()=>{try{return localStorage.getItem('floating:auto-overlay')!=='false';}catch{return true;}});
   const [pairing,setPairing]=useState<{endpoint:string;token:string;error:string|null}|null>(null);
   const [source,setSource]=useState(native?'desktop':'demo');
-  const [systemSpectrum,setSystemSpectrum]=useState(false);
+  const [systemSpectrum,setSystemSpectrum]=useState(()=>{try{const saved=localStorage.getItem('floating:spectrum');return saved===null?native&&/Windows/i.test(navigator.userAgent):saved==='true';}catch{return native&&/Windows/i.test(navigator.userAgent);}});
   const [configuring,setConfiguring]=useState(startAction==='config');
   const configuringRef=useRef(configuring);configuringRef.current=configuring;
   const [imported,setImported]=useState<{lyrics:LyricLine[];plain:string;name:string}|null>(null);
@@ -279,7 +284,14 @@ export default function App(){
   const [customPreset,setCustomPreset]=useState<string|null>(()=>{try{return localStorage.getItem('floating:preset');}catch{return null;}});
   const stage=useRef<HTMLDivElement>(null),helpDialog=useRef<HTMLDialogElement>(null),[size,setSize]=useState({width:760,height:440});
   const audio=useAudio(source==='demo');const desktop=useNativePlayer(source==='desktop');
-  const spectrum=useSpectrum(systemSpectrum&&source==='desktop'&&settings.mode==='island'&&!!desktop.session?.playing,!overlayWindow);
+  const spectrum=useSpectrum(systemSpectrum&&source==='desktop'&&(settings.mode==='island'||settings.focus)&&!!desktop.session?.playing,!overlayWindow);
+  useEffect(()=>{try{localStorage.setItem('floating:spectrum',String(systemSpectrum));}catch{/* session only */}},[systemSpectrum]);
+  useEffect(()=>{
+    if(!native||overlayWindow||!autoOverlay||autoOverlayAttempted)return;
+    autoOverlayAttempted=true;
+    void openOverlay().catch(e=>{autoOverlayAttempted=false;setNativeError(`Could not open the overlay: ${String(e)}`);});
+  },[autoOverlay]);
+  useEffect(()=>{try{localStorage.setItem('floating:auto-overlay',String(autoOverlay));}catch{/* session only */}},[autoOverlay]);
   const player:Player=source==='demo'?{...audio,title:audio.track.title,artist:audio.track.artist,album:audio.track.album,artwork:audio.track.artwork,pending:false,canPlay:audio.ready,canPause:true,canNext:true,canPrevious:true,canStop:true}:{
     title:desktop.session?.title||'Waiting for music',artist:desktop.session?.artist||'Open a supported player',album:desktop.session?.album||'',artwork:desktop.session?.artwork||'/icon.svg',
     playing:desktop.session?.playing||false,position:desktop.position,duration:desktop.session?.duration||0,bands:spectrum.bands,pending:desktop.pending,
@@ -301,19 +313,19 @@ export default function App(){
   },[trackKey]);
   useEffect(()=>{try{localStorage.setItem(storageKey,JSON.stringify(settings));setStorageWarning(false);}catch{setStorageWarning(true);}},[settings]);
   useEffect(()=>{const update=(e:StorageEvent)=>{if(e.key===storageKey)setSettings(readSettings(e.newValue));};window.addEventListener('storage',update);return()=>window.removeEventListener('storage',update);},[]);
-  // Shift+C: customize the lyrics in place. Customizing is about the lyric layout, so it leaves island/focus.
+  // Alt+Shift+C: customize the lyrics in place. Customizing is about the lyric layout, so it leaves island/focus.
   const openConfig=useCallback(()=>{setConfiguring(true);setSettings(s=>s.focus||s.mode==='island'?{...s,focus:false,mode:'lyrics'}:s);},[]);
   const toggleConfig=useCallback(()=>{if(configuringRef.current)setConfiguring(false);else openConfig();},[openConfig]);
-  // Shift+F: focus mode hides everything except a short pill when the track changes.
+  // Alt+Shift+F: focus mode hides everything except a short pill when the track changes.
   const toggleFocus=useCallback(()=>{setConfiguring(false);setSettings(s=>({...s,focus:!s.focus}));},[]);
   useEffect(()=>{if(startAction==='focus')toggleFocus();},[toggleFocus]);
   useEffect(()=>{
     if(!overlayWindow)return;
     let disposed=false;const unlisten:(()=>void)[]=[];
-    void import('@tauri-apps/api/event').then(async({listen})=>{
+    void (async()=>{
       const offs=[await listen('shortcut:config',toggleConfig),await listen('shortcut:focus',toggleFocus),await listen('overlay:unlock',openConfig)];
       if(disposed)offs.forEach(off=>off());else unlisten.push(...offs);
-    });
+    })();
     return()=>{disposed=true;unlisten.forEach(off=>off());};
   },[toggleConfig,toggleFocus,openConfig]);
   useEffect(()=>{
@@ -321,7 +333,7 @@ export default function App(){
       const target=e.target as HTMLElement|null;
       if(e.key==='Escape'&&configuringRef.current){setConfiguring(false);return;}
       // Natively these arrive as global shortcuts; in the browser they are page shortcuts outside text fields.
-      if(native||!e.shiftKey||e.ctrlKey||e.altKey||e.metaKey||e.repeat||target?.closest('input,textarea,select,[contenteditable="true"]'))return;
+      if(native||!e.shiftKey||!e.altKey||e.ctrlKey||e.metaKey||e.repeat||target?.closest('input,textarea,select,[contenteditable="true"]'))return;
       if(e.code==='KeyC'){e.preventDefault();toggleConfig();}else if(e.code==='KeyF'){e.preventDefault();toggleFocus();}
     };
     window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);
@@ -336,7 +348,7 @@ export default function App(){
   const plain=imported?.plain||(source==='desktop'?desktop.plain:'');
   function set<K extends keyof Settings>(key:K,value:Settings[K]){setSettings(s=>({...s,[key]:value}));}
   const setOffset=(n:number)=>{set('offset',n);try{localStorage.setItem(`floating:offset:${trackKey}`,String(n));}catch{/* session only */}};
-  function preset(name:Settings['preset']){setSettings(s=>({...s,preset:name,opacity:name==='card'?82:name==='minimal'?28:0,fontSize:name==='subtitle'?24:28,weight:name==='card'?600:500,lines:name==='subtitle'?2:3}));}
+  function preset(name:Settings['preset']){setSettings(s=>({...s,preset:name,opacity:name==='card'?82:name==='caption'?76:name==='minimal'?28:0,fontSize:name==='subtitle'?24:28,weight:name==='card'?600:500,lines:name==='subtitle'?2:3}));}
   function resetPosition(){setSettings(s=>({...s,bounds:constrainBounds({...defaults.bounds,x:(size.width-440)/2,y:(size.height-230)/2},size.width,size.height),islandBounds:{...defaults.islandBounds,x:(size.width-180)/2,y:48}}));}
   const error=source==='demo'?audio.error:desktop.error;
   const openSettings=()=>{setConfiguring(false);if(overlayWindow)void showSettings();else document.getElementById('settings-panel')?.scrollIntoView({behavior:settings.reducedMotion?'auto':'smooth',block:'nearest'});};
@@ -345,29 +357,29 @@ export default function App(){
   if(overlayWindow)return <main className="native-overlay" ref={stage}>{overlay}</main>;
   return <div className={`app ${settings.reducedMotion?'reduce-motion':''}`}>
     <header className="site-header"><a className="brand" href="/" aria-label="Floating Lyrics home"><span className="brand-icon"><AudioLines size={23}/></span><span>floating<span className="brand-light">lyrics</span><span className="brand-dot">.</span></span></a>
-      <nav aria-label="Main navigation"><a className="nav-active" href="/demo">Playground</a><a href="#how-it-works">How it works</a><a className="download-nav" href="#download">Get the app <ArrowDownToLine size={15}/></a></nav>
+      <nav aria-label="Main navigation"><a className="nav-active" href="/demo">Playground</a><button type="button" className="nav-tour" onClick={()=>setTourOpen(true)}>Quick tour</button><a href="#how-it-works">How it works</a><a className="download-nav" href="#download">Get the app <ArrowDownToLine size={15}/></a></nav>
     </header>
     <main>
       <section className="intro"><div><div className="eyebrow"><span/> MUSIC, WITHOUT THE DISTRACTION</div><h1>A little space<br className="mobile-break"/> for your <em>music.</em></h1><p>Your favorite words. Right where you want them.<br className="mobile-break"/> Make yourself at home in the playground.</p></div><div className="intro-note"><Waves size={25}/><span>Less window switching.<br/>More being in the moment.</span></div></section>
       <section className="workspace" aria-label="Interactive playground">
-        <div className="preview-column"><div className="preview-toolbar"><div className="mode-switch" role="group" aria-label="Display mode"><button aria-pressed={settings.mode==='lyrics'&&!settings.focus} onClick={()=>setSettings(s=>({...s,mode:'lyrics',focus:false}))}><Music2 size={15}/>Floating lyrics</button><button aria-pressed={settings.mode==='island'&&!settings.focus} onClick={()=>{setConfiguring(false);setSettings(s=>({...s,mode:'island',focus:false}));}}><span className="pill-icon"/>Focus Island<span className="new-label">NEW</span></button></div><div className="preview-actions"><button type="button" className="chip-button" aria-pressed={configuring} onClick={toggleConfig} aria-label="Customize" title="Customize (Shift+C)"><SlidersHorizontal size={14}/><span className="chip-text">Customize</span><kbd>⇧C</kbd></button><button type="button" className="chip-button" aria-pressed={settings.focus} onClick={toggleFocus} aria-label="Focus mode" title="Focus mode (Shift+F)"><Focus size={14}/><span className="chip-text">Focus</span><kbd>⇧F</kbd></button><IconButton label={light?'Dark background':'Light background'} onClick={()=>setLight(v=>!v)}>{light?<Moon size={17}/>:<Sun size={17}/>}</IconButton><IconButton label="Demo help" onClick={()=>setShowHelp(true)}><CircleHelp size={17}/></IconButton></div></div>
-          <div className={`desktop-scene ${light?'scene-light':''}`} ref={stage} data-testid="desktop-scene">
+        <div className="preview-column"><div className="preview-toolbar"><div className="mode-switch" role="group" aria-label="Display mode" data-tour="modes"><button aria-pressed={settings.mode==='lyrics'&&!settings.focus} onClick={()=>setSettings(s=>({...s,mode:'lyrics',focus:false}))}><Music2 size={15}/>Floating lyrics</button><button aria-pressed={settings.mode==='island'&&!settings.focus} onClick={()=>{setConfiguring(false);setSettings(s=>({...s,mode:'island',focus:false}));}}><span className="pill-icon"/>Focus Island<span className="new-label">NEW</span></button></div><div className="preview-actions"><button type="button" className="chip-button" aria-pressed={configuring} onClick={toggleConfig} aria-label="Customize" title="Customize (Alt+Shift+C)"><SlidersHorizontal size={14}/><span className="chip-text">Customize</span><kbd>⌥⇧C</kbd></button><button type="button" className="chip-button" aria-pressed={settings.focus} onClick={toggleFocus} aria-label="Focus mode" title="Focus mode (Alt+Shift+F)"><Focus size={14}/><span className="chip-text">Focus</span><kbd>⌥⇧F</kbd></button><IconButton label={light?'Dark background':'Light background'} onClick={()=>setLight(v=>!v)}>{light?<Moon size={17}/>:<Sun size={17}/>}</IconButton><IconButton label="Demo help" onClick={()=>setShowHelp(true)}><CircleHelp size={17}/></IconButton></div></div>
+          <div className={`desktop-scene ${light?'scene-light':''}`} ref={stage} data-testid="desktop-scene" data-tour="scene">
             <div className="scene-orbit orbit-one"/><div className="scene-orbit orbit-two"/><div className="scene-grain"/>
             <div className="desktop-menubar"><span><span className="desktop-dot"/> Your space</span><span>MONDAY <span className="menu-divider">/</span> 09:41</span></div>
             <div className="ambient-copy"><span>ROOM TO</span><strong>breathe.</strong></div>
             {overlay}
-            <div className="scene-footer"><span><span className="live-dot"/> {source==='demo'?'INTERACTIVE DEMO':'DESKTOP PREVIEW'}</span><span>{settings.focus?'Focus mode · shows only when the track changes':settings.mode==='island'?'Pinned top center · hover to open':configuring?'Drag to move · pull a corner to resize · scroll for size':'Hover to see through · Shift+C to customize'}</span></div>
+            <div className="scene-footer"><span><span className="live-dot"/> {source==='demo'?'INTERACTIVE DEMO':'DESKTOP PREVIEW'}</span><span>{settings.focus?'Focus mode · shows only when the track changes':settings.mode==='island'?'Pinned top center · hover to open':configuring?'Drag to move · pull a corner to resize · scroll for size':'Hover to see through · Alt+Shift+C to customize'}</span></div>
           </div>
           <div className="canvas-footer"><span><Monitor size={14}/>{source==='demo'?'A preview of your desktop. No install needed.':'Live session from your desktop player.'}</span><button onClick={resetPosition}><RotateCcw size={13}/>Reset position</button></div>
-          <section className="sample-player" aria-label="Sample player"><div className="player-track"><img src={player.artwork} alt={`${player.title} artwork`}/><div><span className="eyebrow">{source==='demo'?'ON THE DEMO DECK':'NOW PLAYING'}</span><strong>{player.title}</strong><span>{player.artist}</span></div></div><div className="player-center"><Transport player={player}/><div className="seek-row"><time data-testid="playback-time">{formatTime(player.position)}</time><input aria-label="Seek" type="range" min="0" max={player.duration||32} step="0.1" value={player.position} onChange={e=>player.seek(Number(e.target.value))} disabled={source!=='demo'}/><time>{formatTime(player.duration)}</time></div></div><div className="volume-control"><Volume2 size={16}/><input aria-label="Volume" type="range" min="0" max="1" step="0.01" value={audio.volume} onChange={e=>audio.setVolume(Number(e.target.value))} disabled={source!=='demo'}/></div></section>
+          <section className="sample-player" aria-label="Sample player" data-tour="player"><div className="player-track"><img src={player.artwork} alt={`${player.title} artwork`}/><div><span className="eyebrow">{source==='demo'?'ON THE DEMO DECK':'NOW PLAYING'}</span><strong>{player.title}</strong><span>{player.artist}</span></div></div><div className="player-center"><Transport player={player}/><div className="seek-row"><time data-testid="playback-time">{formatTime(player.position)}</time><input aria-label="Seek" type="range" min="0" max={player.duration||32} step="0.1" value={player.position} onChange={e=>player.seek(Number(e.target.value))} disabled={source!=='demo'}/><time>{formatTime(player.duration)}</time></div></div><div className="volume-control"><Volume2 size={16}/><input aria-label="Volume" type="range" min="0" max="1" step="0.01" value={audio.volume} onChange={e=>audio.setVolume(Number(e.target.value))} disabled={source!=='demo'}/></div></section>
           {error&&<p className="notice error" role="alert">{error}</p>}
           {source==='demo'&&!audio.spectrumAvailable&&<p className="notice" role="status">Audio visualization is unavailable in this browser. Playback and lyrics still work.</p>}
           <div className="sample-selector"><label htmlFor="sample-select">Try a different mood</label><select id="sample-select" value={audio.index} onChange={e=>audio.setIndex(Number(e.target.value))} disabled={source!=='demo'}>{samples.map((s,i)=><option key={s.id} value={i}>{s.title} · {s.id==='komorebi'?'Japanese':'English'}</option>)}</select><span>Original instrumental audio & demo words</span></div>
         </div>
-        <aside className="settings-panel" id="settings-panel" aria-label="Customize overlay"><div className="settings-heading"><div><SlidersHorizontal size={18}/><h2>Make it yours</h2></div><span className="auto-save"><Check size={12}/>{storageWarning?'Session only':'Auto-saved'}</span></div>
+        <aside className="settings-panel" id="settings-panel" aria-label="Customize overlay" data-tour="settings"><div className="settings-heading"><div><SlidersHorizontal size={18}/><h2>Make it yours</h2></div><span className="auto-save"><Check size={12}/>{storageWarning?'Session only':'Auto-saved'}</span></div>
           <div className="settings-tabs" role="group" aria-label="Settings sections"><button aria-pressed={tab==='appearance'} onClick={()=>setTab('appearance')}>Appearance</button><button aria-pressed={tab==='behavior'} onClick={()=>setTab('behavior')}>Behavior</button></div>
           {tab==='appearance'?<div className="settings-body">
-            <div className="field-label">START WITH A PRESET</div><div className="preset-grid">{(['minimal','subtitle','card'] as const).map(p=><button key={p} aria-pressed={settings.preset===p} onClick={()=>preset(p)}><span className={`preset-preview ${p}`}><i/><i/><i/></span><span>{p[0].toUpperCase()+p.slice(1)}</span>{settings.preset===p&&<Check size={11}/>}</button>)}</div>
+            <div className="field-label">START WITH A PRESET</div><div className="preset-grid">{(['caption','minimal','subtitle','card'] as const).map(p=><button key={p} aria-pressed={settings.preset===p} onClick={()=>preset(p)}><span className={`preset-preview ${p}`}><i/><i/><i/></span><span>{p[0].toUpperCase()+p.slice(1)}</span>{settings.preset===p&&<Check size={11}/>}</button>)}</div>
             <div className="setting-group"><div className="label-row"><label htmlFor="font-size">Font size</label><output>{settings.fontSize} px</output></div><input id="font-size" type="range" min="16" max="64" value={settings.fontSize} onChange={e=>set('fontSize',Number(e.target.value))}/><div className="range-labels"><span>Aa</span><span>Aa</span></div></div>
             <div className="setting-group row"><label htmlFor="font-family">Font</label><select id="font-family" value={settings.font} onChange={e=>set('font',e.target.value as Font)}>{(Object.keys(fonts) as Font[]).map(f=><option key={f} value={f}>{fonts[f][0]}</option>)}</select></div>
             <div className="setting-group row"><label htmlFor="weight">Font weight</label><select id="weight" value={settings.weight} onChange={e=>set('weight',Number(e.target.value))}><option value="400">Regular</option><option value="500">Medium</option><option value="600">Semibold</option><option value="700">Bold</option></select></div>
@@ -378,7 +390,7 @@ export default function App(){
             <div className="setting-group row"><label htmlFor="alignment">Alignment</label><select id="alignment" value={settings.align} onChange={e=>set('align',e.target.value as Settings['align'])}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></div>
             <div className="preset-actions"><button onClick={()=>{const value=JSON.stringify(settings);setCustomPreset(value);try{localStorage.setItem('floating:preset',value);}catch{setStorageWarning(true);}}}><ArrowDownToLine size={13}/>Save my preset</button><button disabled={!customPreset} onClick={()=>{if(customPreset)setSettings(readSettings(customPreset));}}>Restore</button></div>
           </div>:<div className="settings-body">
-            <label className="toggle-row"><span><strong>Focus mode</strong><small>Hide everything; show a short pill when the track changes. Shift+F</small></span><input type="checkbox" checked={settings.focus} onChange={e=>{setConfiguring(false);set('focus',e.target.checked);}}/></label>
+            <label className="toggle-row"><span><strong>Focus mode</strong><small>Hide everything; show a short pill when the track changes. Alt+Shift+F</small></span><input type="checkbox" checked={settings.focus} onChange={e=>{setConfiguring(false);set('focus',e.target.checked);}}/></label>
             <label className="toggle-row"><span><strong>Reduced motion</strong><small>Quiet transitions, static spectrum</small></span><input type="checkbox" checked={settings.reducedMotion} onChange={e=>set('reducedMotion',e.target.checked)}/></label>
             <div className="setting-group"><div className="label-row"><label htmlFor="collapse-delay">Island collapse delay</label><output>{settings.collapseDelay/1000}s</output></div><input id="collapse-delay" type="range" min="500" max="5000" step="500" value={settings.collapseDelay} onChange={e=>set('collapseDelay',Number(e.target.value))}/><p className="field-help">Closes after the pointer and keyboard focus leave.</p></div>
             <div className="setting-group"><div className="label-row"><label htmlFor="offset">Lyric timing offset</label><output>{settings.offset>0?'+':''}{settings.offset} ms</output></div><input id="offset" type="range" min="-5000" max="5000" step="100" value={settings.offset} onChange={e=>setOffset(Number(e.target.value))}/><p className="field-help">Positive values show lyrics earlier. Saved per track.</p></div>
@@ -387,14 +399,15 @@ export default function App(){
             {imported&&<p className="field-help">{imported.name} · {imported.lyrics.length?'Synced lyrics':'Plain text · not synced'} <button onClick={()=>saveImport(null)}>Clear</button></p>}{importError&&<p role="alert" className="notice error">{importError}</p>}
             <button className="reset-all" onClick={()=>{setSettings(structuredClone(defaults));setOffset(0);saveImport(null);resetPosition();}}><RotateCcw size={14}/>Reset all settings</button>
           </div>}
-          <div className="settings-bottom"><Headphones size={17}/><p>{settings.mode==='island'?'Hover over the island to reveal your music controls.':'Press Shift+C to move and style the lyrics. There’s no wrong way to listen.'}</p></div>
+          <div className="settings-bottom"><Headphones size={17}/><p>{settings.mode==='island'?'Hover over the island to reveal your music controls.':'Press Alt+Shift+C to move and style the lyrics. There’s no wrong way to listen.'}</p></div>
         </aside>
       </section>
-      {native&&<section className="native-controls"><h2>Desktop connection</h2><label>Playback source <select value={source} onChange={e=>setSource(e.target.value)}><option value="desktop">Desktop media sessions</option><option value="demo">Demo samples</option></select></label><label>Player <select value={desktop.selected} onChange={e=>desktop.setSelected(e.target.value)}><option value="">Automatic</option>{desktop.sessions.map(s=><option key={s.id} value={s.id}>{s.id} — {s.title}</option>)}</select></label><button className="primary-button" onClick={()=>{void openOverlay().catch(e=>setNativeError(String(e)));}}>Open desktop overlay <Maximize2 size={16}/></button><p>{desktop.status}</p><button onClick={()=>void browserPairing().then(setPairing).catch(e=>setNativeError(String(e)))}>Pair YouTube Music companion</button>{pairing&&<label>Pairing code (changes on restart)<input readOnly value={pairing.token} onFocus={e=>e.target.select()}/><small>{pairing.error||pairing.endpoint}</small></label>}<label className="toggle-row"><span><strong>Visualize system audio (Windows)</strong><small>Includes sound from other apps. Analyzed locally; never recorded.</small></span><input type="checkbox" checked={systemSpectrum} onChange={e=>setSystemSpectrum(e.target.checked)}/></label>{spectrum.error&&<p role="alert">{spectrum.error}</p>}{desktop.results.length>0&&<label>Lyric version <select defaultValue="" onChange={e=>{const r=desktop.results.find(r=>r.id===Number(e.target.value));if(r)desktop.choose(r);}}><option value="" disabled>Choose a matching version</option>{desktop.results.map(r=><option key={r.id} value={r.id}>{r.trackName} · {r.artistName} · {r.albumName} · {formatTime(r.duration)}</option>)}</select></label>}{nativeError&&<p role="alert">{nativeError}</p>}</section>}
+      {native&&<section className="native-controls"><h2>Desktop connection</h2><label className="toggle-row"><span><strong>Open overlay at startup</strong><small>Caption lyrics appear automatically when the app starts.</small></span><input aria-label="Open overlay at startup" type="checkbox" checked={autoOverlay} onChange={e=>setAutoOverlay(e.target.checked)}/></label><label>Playback source <select value={source} onChange={e=>setSource(e.target.value)}><option value="desktop">Desktop media sessions</option><option value="demo">Demo samples</option></select></label><label>Player <select value={desktop.selected} onChange={e=>desktop.setSelected(e.target.value)}><option value="">Automatic</option>{desktop.sessions.map(s=><option key={s.id} value={s.id}>{s.id} — {s.title}</option>)}</select></label><button className="primary-button" onClick={()=>{void openOverlay().catch(e=>setNativeError(String(e)));}}>Open desktop overlay <Maximize2 size={16}/></button><p>{desktop.status}</p><button onClick={()=>void browserPairing().then(setPairing).catch(e=>setNativeError(String(e)))}>Pair YouTube Music companion</button>{pairing&&<label>Pairing code (changes on restart)<input readOnly value={pairing.token} onFocus={e=>e.target.select()}/><small>{pairing.error||pairing.endpoint}</small></label>}<label className="toggle-row"><span><strong>Visualize system audio (Windows)</strong><small>Includes sound from other apps. Analyzed locally; never recorded.</small></span><input type="checkbox" checked={systemSpectrum} onChange={e=>setSystemSpectrum(e.target.checked)}/></label>{spectrum.error&&<p role="alert">{spectrum.error}</p>}{desktop.results.length>0&&<label>Lyric version <select defaultValue="" onChange={e=>{const r=desktop.results.find(r=>r.id===Number(e.target.value));if(r)desktop.choose(r);}}><option value="" disabled>Choose a matching version</option>{desktop.results.map(r=><option key={r.id} value={r.id}>{r.trackName} · {r.artistName} · {r.albumName} · {formatTime(r.duration)}</option>)}</select></label>}{nativeError&&<p role="alert">{nativeError}</p>}</section>}
       <section className="feature-strip" id="how-it-works"><article><div className="feature-icon"><LayoutTemplate size={21}/></div><div><h3>Your lyrics, your layout.</h3><p>Drag, resize, and find your favorite spot.</p></div></article><article><div className="feature-icon"><Moon size={21}/></div><div><h3>A little less distraction.</h3><p>Focus Island keeps your music close.</p></div></article><article><div className="feature-icon"><Settings2 size={21}/></div><div><h3>Made to feel like you.</h3><p>Fine-tune every little detail, in real time.</p></div></article></section>
       <section className="download-section" id="download"><div><span className="eyebrow">TAKE YOUR MUSIC WITH YOU</span><h2>From this little playground<br/>to your everyday desktop.</h2><p>Planned for Spotify, Apple Music, and YouTube Music.<br/>The web demo plays original samples. Desktop builds are in development.</p></div><div className="download-cards"><div><Monitor size={22}/><strong>Windows</strong><span>Windows 11 · x64</span><button disabled>Build not available yet</button></div><div><Disc3 size={22}/><strong>macOS</strong><span>Apple Silicon & Intel</span><button disabled>Build not available yet</button></div></div></section>
     </main>
-    <footer><span className="footer-brand"><AudioLines size={16}/> floatinglyrics.</span><span>A small companion for the songs you love.</span><span>Local preferences. No account.</span></footer>
-    <dialog ref={helpDialog} className="help-dialog" onCancel={()=>setShowHelp(false)} onClick={e=>{if(e.target===e.currentTarget)setShowHelp(false);}}><div className="dialog-heading"><h2>A place to play.</h2><IconButton label="Close help" onClick={()=>setShowHelp(false)}><X size={19}/></IconButton></div><p>Press Play to hear an original instrumental soundscape. Demo words show how synced lyrics follow the track.</p><ol><li>Press Shift+C (or Customize) to move, resize and style the lyrics. Scroll over them to change the size.</li><li>Hover the lyrics and they step aside, so you can keep working behind them.</li><li>Shift+F turns on Focus mode: nothing on screen until the track changes.</li><li>Choose Focus Island, then hover or tap to reveal playback controls.</li><li>Explore Appearance and Behavior. Changes save on this browser.</li></ol><p>Desktop always-on-top, system playback, and click-through require the desktop app. This preview stays inside the page.</p><button className="primary-button" onClick={()=>setShowHelp(false)}>Got it <ArrowRight size={16}/></button></dialog>
+    <footer><span className="footer-brand"><AudioLines size={16}/> floatinglyrics.</span><span>A small companion for the songs you love.</span><button type="button" className="tour-replay" onClick={()=>setTourOpen(true)}>Replay tour</button><span>Local preferences. No account.</span></footer>
+    <Tour open={tourOpen} desktop={native} reducedMotion={settings.reducedMotion} onClose={()=>setTourOpen(false)}/>
+    <dialog ref={helpDialog} className="help-dialog" onCancel={()=>setShowHelp(false)} onClick={e=>{if(e.target===e.currentTarget)setShowHelp(false);}}><div className="dialog-heading"><h2>A place to play.</h2><IconButton label="Close help" onClick={()=>setShowHelp(false)}><X size={19}/></IconButton></div><p>Press Play to hear an original instrumental soundscape. Demo words show how synced lyrics follow the track.</p><ol><li>Press Alt+Shift+C (or Customize) to move, resize and style the lyrics. Scroll over them to change the size.</li><li>Hover the lyrics and they step aside, so you can keep working behind them.</li><li>Alt+Shift+F turns on Focus mode: nothing on screen until the track changes.</li><li>Choose Focus Island, then hover or tap to reveal playback controls.</li><li>Explore Appearance and Behavior. Changes save on this browser.</li></ol><p>Desktop always-on-top, system playback, and click-through require the desktop app. This preview stays inside the page.</p><button className="primary-button" onClick={()=>setShowHelp(false)}>Got it <ArrowRight size={16}/></button></dialog>
   </div>;
 }

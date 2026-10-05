@@ -19,8 +19,14 @@ impl Bridge {
     pub fn new() -> Self {
         let data=Arc::new(Mutex::new(Data{sessions:HashMap::new(),commands:vec![],results:HashMap::new()}));
         let token=format!("{}{}",uuid::Uuid::new_v4().simple(),uuid::Uuid::new_v4().simple());
-        let mut info=BridgeInfo{endpoint:"http://127.0.0.1:49271".into(),token,error:None};
-        match Server::http("127.0.0.1:49271") {
+        // A debug-only port override lets fixture tests coexist with a user's running release app.
+        #[cfg(debug_assertions)]
+        let port=std::env::var("FLOATING_LYRICS_TEST_BRIDGE_PORT").ok().and_then(|v|v.parse::<u16>().ok()).filter(|v|*v>=1024).unwrap_or(49271);
+        #[cfg(not(debug_assertions))]
+        let port=49271u16;
+        let endpoint=format!("http://127.0.0.1:{port}");
+        let mut info=BridgeInfo{endpoint:endpoint.clone(),token,error:None};
+        match Server::http(format!("127.0.0.1:{port}")) {
             Err(e)=>info.error=Some(format!("Browser companion unavailable: {}",e)),
             Ok(server)=>{
                 let shared=data.clone();let secret=info.token.clone();

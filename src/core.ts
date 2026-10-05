@@ -4,14 +4,14 @@ export const fonts = { 'dm-sans': ['DM Sans', "'DM Sans', system-ui, sans-serif"
 export type Font = keyof typeof fonts;
 export type Bounds = { x: number; y: number; width: number; height: number };
 export type Settings = {
-  version: 1; mode: Mode; preset: 'minimal' | 'subtitle' | 'card'; fontSize: number;
+  version: 1; mode: Mode; preset: 'caption' | 'minimal' | 'subtitle' | 'card'; fontSize: number;
   weight: number; color: string; opacity: number; lines: number; align: 'left' | 'center' | 'right';
   collapseDelay: number; offset: number; reducedMotion: boolean; focus: boolean; font: Font;
   songInfo: boolean; bounds: Bounds; islandBounds: Bounds;
 };
 export const defaults: Settings = {
-  version: 1, mode: 'lyrics', preset: 'minimal', fontSize: 28, weight: 500, color: '#f4f8ed',
-  opacity: 28, lines: 3, align: 'center', collapseDelay: 2000, offset: 0, focus: false, font: 'dm-sans',
+  version: 1, mode: 'lyrics', preset: 'caption', fontSize: 28, weight: 500, color: '#f4f8ed',
+  opacity: 76, lines: 3, align: 'center', collapseDelay: 2000, offset: 0, focus: false, font: 'dm-sans',
   reducedMotion: false, songInfo: true, bounds: { x: 120, y: 120, width: 440, height: 230 },
   islandBounds: { x: 244, y: 50, width: 180, height: 56 },
 };
@@ -59,7 +59,7 @@ export function readSettings(raw: string | null): Settings {
     const number = (key: keyof Settings, min: number, max: number) => typeof s[key] === 'number' && Number.isFinite(s[key]) ? clamp(s[key], min, max) : defaults[key];
     const bounds = (key: 'bounds' | 'islandBounds') => s[key] && ['x','y','width','height'].every(k => typeof s[key][k] === 'number' && Number.isFinite(s[key][k])) ? constrainBounds(s[key], 4000, 3000) : defaults[key];
     return { ...defaults, mode: s.mode === 'island' ? 'island' : 'lyrics',
-      preset: ['minimal','subtitle','card'].includes(s.preset) ? s.preset : 'minimal',
+      preset: ['caption','minimal','subtitle','card'].includes(s.preset) ? s.preset : defaults.preset,
       fontSize: number('fontSize', 16, 64) as number, weight: number('weight', 400, 700) as number,
       color: /^#[0-9a-f]{6}$/i.test(s.color) ? s.color : defaults.color,
       opacity: number('opacity', 0, 100) as number, lines: [1,2,3].includes(s.lines) ? s.lines : 3,

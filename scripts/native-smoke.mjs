@@ -12,6 +12,11 @@ const saved=await main.evaluate(()=>Object.fromEntries(Object.entries(localStora
 const results=[];let timer;
 const record=name=>{results.push(name);console.log(`PASS ${name}`);};
 try {
+  await expect.poll(()=>context.pages().some(p=>p.url().includes('overlay')),{timeout:15000}).toBe(true);
+  const startupOverlay=context.pages().find(p=>p.url().includes('overlay'));
+  await expect(startupOverlay.getByTestId('lyrics-surface')).toHaveClass(/preset-caption/);
+  await expect(main.getByRole('checkbox',{name:'Open overlay at startup'})).toBeChecked();
+  record('Desktop opens the Caption overlay automatically at startup');
   const pairing=await invoke('browser_pairing');assert.equal(pairing.error,null);
   const request=(path,body,extra={})=>fetch(pairing.endpoint+path,{method:body?'POST':'GET',headers:{Authorization:`Bearer ${pairing.token}`,'Content-Type':'application/json',...extra},body:body?JSON.stringify(body):undefined});
   assert.equal((await fetch(pairing.endpoint+'/commands?id=browser:e2e')).status,401);
@@ -23,6 +28,7 @@ try {
   await main.getByLabel(/^Playback source/).selectOption('desktop');
   await main.getByLabel(/^Player /).selectOption(session.id);
   await main.getByRole('button',{name:'Floating lyrics',exact:true}).click();
+  await main.getByRole('button',{name:'Caption',exact:true}).click();
   await expect(main.locator('.player-track strong')).toHaveText(session.title);
   record('Native IPC discovers the authenticated companion session');
   const acknowledger=setInterval(async()=>{
@@ -47,7 +53,9 @@ try {
   await expect.poll(()=>context.pages().some(p=>p.url().includes('overlay'))).toBe(true);
   const overlay=context.pages().find(p=>p.url().includes('overlay'));
   await expect(overlay.getByTestId('active-lyric')).toHaveText('Native synchronized line');
-  await expect(overlay.getByTestId('overlay').locator('.overlay-song')).toContainText(session.title);
+  await expect(overlay.getByTestId('song-info')).toContainText(session.title);
+  assert.equal(await overlay.evaluate(()=>getComputedStyle(document.documentElement).backgroundColor),'rgba(0, 0, 0, 0)');
+  await expect(overlay.getByTestId('lyrics-surface')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
   record('Separate native overlay shares selected player and imported lyrics');
   await main.getByRole('button',{name:'Focus Island'}).click();
   await expect(overlay.getByTestId('island')).toBeVisible();

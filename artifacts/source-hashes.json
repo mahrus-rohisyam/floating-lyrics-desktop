@@ -1,22 +1,38 @@
-﻿[
+[
     {
-        "Path":  "D:\\dev\\floating-lyrics\\src\\App.tsx",
-        "Hash":  "A939F659B532E565CC5EA9E0034D4D04B77B8CE7B62EFDB4C26B62487B748FBD"
+        "path":  "src/App.tsx",
+        "sha256":  "bf2b2490ac2fd38c630c0ce12c634244a2f950bf5c08f4da35ccbba7e0134c7e"
     },
     {
-        "Path":  "D:\\dev\\floating-lyrics\\src\\useNativePlayer.ts",
-        "Hash":  "C6466BD4926994374D8D3C4BDFD7715E49035CDD9F515A8881990D54B8E1D375"
+        "path":  "src/core.ts",
+        "sha256":  "ee2584bee326807402a22e138eac38b8f989b7557ad4d86b8db3d865fc79bb3d"
     },
     {
-        "Path":  "D:\\dev\\floating-lyrics\\src-tauri\\src\\lib.rs",
-        "Hash":  "1A5483ED06FFF600C3167642B0C5715D867E12535B339D36CED1D8CDCC570FCA"
+        "path":  "src/styles.css",
+        "sha256":  "ed628cb2e772caf2aa66286079988f2ba4da39cb3da07975bfbc39a9082161c7"
     },
     {
-        "Path":  "D:\\dev\\floating-lyrics\\scripts\\native-smoke.mjs",
-        "Hash":  "2D16D29805C9C028667B89F9B58CC57068B982DB26B73E6CEF8E254519AABD72"
+        "path":  "src-tauri/src/lib.rs",
+        "sha256":  "ce5e673dba186df6b16d069ddf69f0f9f88e0b7c575892dc646bcb7a1efec4ef"
     },
     {
-        "Path":  "D:\\dev\\floating-lyrics\\scripts\\extension-smoke.mjs",
-        "Hash":  "8143315065731A56D16F28B24DC80BB17E96BAA20DA089D38A270027E518DF00"
+        "path":  "src-tauri/src/bridge.rs",
+        "sha256":  "4ea4c0bd6283f7687d416011b68875dac064527631f789a8ddf4a81b004cc618"
+    },
+    {
+        "path":  "browser-extension/background.js",
+        "sha256":  "beb3c12ac217195e55a269c35f1584846681f6c74cb3c37220e0d09f5f5e2b20"
+    },
+    {
+        "path":  "scripts/desktop.mjs",
+        "sha256":  "4ba9a55b66d54112b5262eaa6ac53c102b01f6451e42e375cd0ff3acf1edf6e9"
+    },
+    {
+        "path":  "scripts/native-smoke.mjs",
+        "sha256":  "5057437637dfec5290e9322ab9e9e09464fc26535ccf7ce108b20688fba4c09a"
+    },
+    {
+        "path":  "scripts/extension-smoke.mjs",
+        "sha256":  "1797b735f062c340e0dbb83f9923b2d3ebce2575a91e4c6e895bf3a5e58aae36"
     }
 ]

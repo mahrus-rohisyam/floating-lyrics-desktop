@@ -220,7 +220,7 @@ Bedakan tiga ukuran: ketepatan versi lagu, cakupan ketersediaan lirik, dan error
 
 ### Progress implementasi 5 Oktober 2026
 
-- **1D prototype demo:** tersedia dan lolos 39 skenario browser (13 × Chromium/Firefox/WebKit), termasuk audio nyata, sinkronisasi fixture, empat sudut, Island dan aksesibilitas dasar.
+- **1D prototype demo:** tersedia dan lolos 51 skenario browser (17 × Chromium/Firefox/WebKit), termasuk audio nyata, caption bawaan dengan lirik bergulir/blur, sinkronisasi fixture, empat sudut, Island dan aksesibilitas dasar.
 - **0/0I/1:** jalur Windows, dua window, tray, GSMTC, loopback companion, dan WASAPI/FFT sudah dibangun. Native smoke dan extension fixture E2E lolos. Gate macOS, multi-monitor dan OS hit testing belum terpenuhi.
 - **2/3:** adapter, LRCLIB, parser, impor dan offset tersedia. Fixture sinkronisasi lolos; matriks tiga layanan × dua OS dan pengukuran drift live masih terbuka.
 - **3I/4:** compact/expanded Island, kontrol sesuai capability, pengaturan visual dasar, persistensi dan reduced motion tersedia. Capture macOS dan kustomisasi lanjutan belum selesai.

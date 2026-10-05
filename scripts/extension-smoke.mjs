@@ -15,8 +15,8 @@ const record=name=>{passed.push(name);console.log(`PASS ${name}`);};
 try {
   context=await chromium.launchPersistentContext(profile,{channel:'chromium',headless:true,args:[`--disable-extensions-except=${extensionPath}`,`--load-extension=${extensionPath}`]});
   const worker=context.serviceWorkers()[0]??await context.waitForEvent('serviceworker');
-  const {token,error}=await invoke('browser_pairing');assert.equal(error,null);
-  await worker.evaluate(token=>chrome.storage.local.set({token}),token);
+  const {token,endpoint,error}=await invoke('browser_pairing');assert.equal(error,null);
+  await worker.evaluate(data=>chrome.storage.local.set(data),{token,endpoint});
   const page=await context.newPage();
   await page.route('https://music.youtube.com/**',async route=>{
     if(route.request().url().endsWith('/fixture.wav'))return route.fulfill({path:resolve('public/samples/afterglow.wav'),contentType:'audio/wav'});
@@ -33,14 +33,18 @@ try {
   assert.equal(await invoke('media_command',{id:session.id,title:session.title,action:'play'}),true);
   await expect.poll(()=>page.locator('video').evaluate(v=>v.currentTime)).toBeGreaterThan(0);
   record('Native play command crosses extension worker and content script to media element');
+  await main.getByLabel(/^Player /).selectOption(session.id);
+  await main.getByRole('button',{name:'Focus Island'}).click();
+  const capture=main.getByRole('checkbox',{name:/Visualize system audio/});
+  if(!await capture.isChecked())await capture.check();
+  await expect.poll(async()=>main.getByTestId('spectrum').locator('span').evaluateAll(nodes=>nodes.some(n=>parseFloat(n.style.height)>5)),{timeout:8000}).toBe(true);
+  record('Island spectrum moves from captured Windows audio through the UI');
   await main.evaluate(async()=>{
     window.testBands=[];window.testSpectrumError='';const api=window.__TAURI_INTERNALS__;
     await api.invoke('plugin:event|listen',{event:'spectrum:bands',target:{kind:'Any'},handler:api.transformCallback(e=>window.testBands.push(e.payload))});
     await api.invoke('plugin:event|listen',{event:'spectrum:error',target:{kind:'Any'},handler:api.transformCallback(e=>window.testSpectrumError=e.payload)});
   });
-  await invoke('set_spectrum_enabled',{enabled:true});
   await expect.poll(()=>main.evaluate(()=>({error:window.testSpectrumError,active:window.testBands.some(b=>b.some(v=>v>0.01))})),{timeout:8000}).toEqual({error:'',active:true});
-  await invoke('set_spectrum_enabled',{enabled:false});
   record('Windows WASAPI loopback produces nonzero FFT bands during playback');
   assert.equal(await invoke('media_command',{id:session.id,title:session.title,action:'pause'}),true);
   await expect.poll(()=>page.locator('video').evaluate(v=>v.paused)).toBe(true);
