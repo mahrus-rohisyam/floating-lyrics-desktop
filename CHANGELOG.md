@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased local preview
+## 0.1.0-alpha.2 — 2026-10-05
 
 - Split the web landing page from the interactive `/demo`, with feature and setup sections, responsive layout and reduced-motion-aware GSAP transitions. The static output is ready for Vercel deployment.
 - Replaced the desktop marketing/playground page with a focused customization Studio; playback and pairing controls now live inside Behavior settings.
@@ -10,7 +10,7 @@
 - Fixed the native Island's transparent corners and retained its top-center position when expanding or collapsing.
 - Replaced the broad Shift+C/F global shortcuts with Alt+Shift+C/F, so ordinary uppercase typing is unaffected.
 - Enabled Windows system-audio spectrum by default while a track plays in Island/Focus mode; users can switch it off. Confirmed moving UI bars against real audio in the native extension fixture test.
-- The updated local installer is built separately from the running alpha executable; these changes are not yet published as a GitHub release.
+- The updated Windows x64 installer is built separately from the running alpha executable and published with this prerelease.
 
 ## 0.1.0-alpha.1 — 2026-10-05
 

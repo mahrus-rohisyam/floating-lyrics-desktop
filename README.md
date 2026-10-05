@@ -2,13 +2,13 @@
 
 Synced lyrics that float above your desktop, plus a Dynamic-Island-style **Focus Island** for Spotify, Apple Music and YouTube Music. Windows/macOS desktop app (Tauri + Rust) with a Vercel-ready landing page and interactive web demo (React + TypeScript).
 
-> **Alpha.** `0.1.0-alpha.1` is the first public preview, not a finished release. See the [changelog](CHANGELOG.md) for known limitations and [validation and remaining gates](docs/VALIDATION.md).
+> **Alpha.** `0.1.0-alpha.2` is a preview, not a finished release. See the [changelog](CHANGELOG.md) for known limitations and [validation and remaining gates](docs/VALIDATION.md).
 
 ## Download
 
-Grab the latest installer from [Releases](https://github.com/mahrus-rohisyam/floating-lyrics-desktop/releases): `*_x64-setup.exe` for Windows 10/11, `*_universal.dmg` for macOS 13+. Builds are unsigned: on Windows choose **More info → Run anyway** in SmartScreen; on macOS right-click the app and choose **Open** the first time.
+Grab the Windows 10/11 x64 installer from [Releases](https://github.com/mahrus-rohisyam/floating-lyrics-desktop/releases). The current build is unsigned, so Windows SmartScreen may show **More info → Run anyway**. A macOS DMG will follow after a build and runtime check on a Mac.
 
-The newest changes in this workspace are packaged as a local, unsigned Windows preview at `artifacts/Floating-Lyrics-Preview-0.1.0-alpha.1-Windows-x64.exe`; see `artifacts/build-manifest.json` for its checksum. It has not replaced the existing GitHub release. Close any running Floating Lyrics Preview instance before installing this build.
+The current Windows installer is archived at `artifacts/Floating-Lyrics-Preview-0.1.0-alpha.2-Windows-x64.exe`; see `artifacts/build-manifest.json` for its checksum. Close any running Floating Lyrics Preview instance before installing this build.
 
 | Shortcut | Action |
 | --- | --- |

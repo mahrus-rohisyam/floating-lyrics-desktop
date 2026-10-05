@@ -1,6 +1,6 @@
 {
   "name": "floating-lyrics",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Synced lyrics that float above your desktop, plus a Focus Island for Spotify, Apple Music and YouTube Music. Tauri + React.",
   "private": true,
   "license": "MIT",

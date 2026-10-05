@@ -39,7 +39,7 @@ jobs:
           releaseName: Floating Lyrics ${{ github.ref_name }}
           releaseBody: |
             Alpha build. Installers are unsigned, so Windows SmartScreen / macOS Gatekeeper will warn on first launch.
-            Shift+C customizes the overlay, Shift+F toggles Focus mode (both are global shortcuts while the app runs).
+            Alt+Shift+C customizes the overlay, Alt+Shift+F toggles Focus mode (both are global shortcuts while the app runs).
             See CHANGELOG.md for details and known limitations.
           prerelease: ${{ contains(github.ref_name, '-') }}
           releaseDraft: false

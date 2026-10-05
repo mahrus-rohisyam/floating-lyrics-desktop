@@ -1,8 +1,8 @@
-{
-    "version":  "0.1.0-alpha.1",
-    "artifact":  "artifacts/Floating-Lyrics-Preview-0.1.0-alpha.1-Windows-x64.exe",
-    "bytes":  6286846,
-    "sha256":  "a34530e3e6d3f4fdfd755488df74fc47152553477d815fa91b1a2a23a2ead629",
+﻿{
+    "version":  "0.1.0-alpha.2",
+    "artifact":  "artifacts/Floating-Lyrics-Preview-0.1.0-alpha.2-Windows-x64.exe",
+    "bytes":  6284901,
+    "sha256":  "a3918e516e4de9110670ca5b1ee9f2dcdf0f4dda437ea722b7d6d5cd8a6badbe",
     "signed":  false,
     "webE2e":  "19/19 Edge, 1/1 mocked Studio; production landing motion smoke passed",
     "nativeFixture":  "Two visible native windows at startup; WebView2 CDP unavailable",
