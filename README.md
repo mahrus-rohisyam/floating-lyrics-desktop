@@ -1,6 +1,6 @@
 # Floating Lyrics
 
-Synced lyrics that float above your desktop, plus a Dynamic-Island-style **Focus Island** for Spotify, Apple Music and YouTube Music. Windows/macOS desktop app (Tauri + Rust) with an interactive web demo (React + TypeScript).
+Synced lyrics that float above your desktop, plus a Dynamic-Island-style **Focus Island** for Spotify, Apple Music and YouTube Music. Windows/macOS desktop app (Tauri + Rust) with a Vercel-ready landing page and interactive web demo (React + TypeScript).
 
 > **Alpha.** `0.1.0-alpha.1` is the first public preview, not a finished release. See the [changelog](CHANGELOG.md) for known limitations and [validation and remaining gates](docs/VALIDATION.md).
 
@@ -17,14 +17,16 @@ The newest changes in this workspace are packaged as a local, unsigned Windows p
 
 Both are global shortcuts. The full three-key chord is captured while the app runs; ordinary uppercase C/F remains available in other apps. Quit from the tray icon to release the shortcuts.
 
-## Run the demo
+## Run the website
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open **http://127.0.0.1:1420/demo** (or `/download`). A four-step first-run tour points out the preview, playback, customization and Focus Island; **Skip tour** dismisses it and **Quick tour** in the header reopens it. The demo plays three original instrumental samples with original timed example words. It does not connect to your music accounts. Caption is the default: only the words have a background, and the active line scrolls smoothly while nearby lines blur slightly. Press Alt+Shift+C (or **Customize**) to move, resize and style the lyrics, hover them to see through, switch to Focus Island, try Alt+Shift+F for Focus mode, and change the appearance/behavior controls. Settings, imported lyrics and per-track offsets are stored locally. Static deployment output is `dist/`; `vercel.json` includes SPA rewrites. No site has been published.
+Open **http://127.0.0.1:1420/** for the landing page, which explains the features, listening modes and setup steps. The landing page uses GSAP entrance and scroll transitions and respects reduced motion. Open `/demo` for the interactive playground. A four-step first-run tour points out the preview, playback, customization and Focus Island; **Skip tour** dismisses it and **Quick tour** reopens it. The demo plays three original instrumental samples with original timed example words. It does not connect to your music accounts. Caption is the default: only the words have a background, and the active line scrolls smoothly while nearby lines blur slightly. Settings, imported lyrics and per-track offsets are stored locally.
+
+Vercel can import this repository as a Vite project: use `npm run build` as the build command and `dist` as the output directory. `vercel.json` keeps `/demo` and the legacy `/download` URL on the SPA; `/download` now shows the landing page. The website links to GitHub Releases for desktop builds. No Vercel deployment has been made from this workspace.
 
 ## Run the desktop app
 
@@ -41,10 +43,10 @@ npm run desktop:build -- --bundles dmg
 
 The helper detects `.tools/cargo/bin` in this workspace; other machines use their normal Rust installation. On Windows, `desktop:build` uses `.tools/release-target/` by default, so a running older executable under `src-tauri/target/` cannot lock the new build. The NSIS installer is emitted under `.tools/release-target/release/bundle/nsis/`; set `CARGO_TARGET_DIR` explicitly if another output location is needed. macOS must be built and tested on a Mac; no macOS artifact has been produced here.
 
-1. Start music in your player, then open the desktop app. The Caption overlay opens automatically. Follow or skip the first-run tour; reopen it with **Quick tour**.
-2. Choose **Desktop media sessions**, then **Automatic** or a specific player.
+1. Start music in your player, then open the desktop app. The Caption overlay opens automatically. The main window is now Studio: it contains the live preview and customization controls only. Follow or skip the first-run tour; reopen it with **Quick tour**.
+2. Open **Behavior → Playback & connections** to choose **Desktop media sessions**, then **Automatic** or a specific player. The same section contains pairing and startup options.
 3. Select/import lyrics if the exact version is not found. Positive offset displays lines earlier.
-4. The separate transparent window stays above normal windows. Use **Open desktop overlay** to reopen it if hidden. **Open overlay at startup** in Desktop connection controls whether it opens automatically next time.
+4. The separate transparent window stays above normal windows. Use **Show overlay** in the Studio header to reopen it if hidden. **Open overlay at startup** in Playback & connections controls whether it opens automatically next time.
 5. Select **Focus Island** for artwork/spectrum; hover or keyboard focus reveals controls. Unsupported player actions are disabled.
 6. In Windows, **Visualize system audio** starts enabled when a track plays in Island/Focus mode. It includes other apps, is analyzed locally, and is not recorded. Turn the option off to keep the spectrum static. macOS system capture remains unfinished.
 7. The tray menu provides Settings, Show/Hide overlay, Customize overlay and Quit. Closing the main window hides it; use Quit to exit.

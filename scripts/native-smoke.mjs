@@ -15,6 +15,11 @@ try {
   await expect.poll(()=>context.pages().some(p=>p.url().includes('overlay')),{timeout:15000}).toBe(true);
   const startupOverlay=context.pages().find(p=>p.url().includes('overlay'));
   await expect(startupOverlay.getByTestId('lyrics-surface')).toHaveClass(/preset-caption/);
+  const skipTour=main.getByRole('button',{name:'Skip tour'});if(await skipTour.isVisible())await skipTour.click();
+  await expect(main.locator('.studio-header')).toBeVisible();
+  await expect(main.locator('.native-controls')).toHaveCount(0);
+  await main.getByRole('button',{name:'Behavior',exact:true}).click();
+  await main.getByText('Playback & connections').click();
   await expect(main.getByRole('checkbox',{name:'Open overlay at startup'})).toBeChecked();
   record('Desktop opens the Caption overlay automatically at startup');
   const pairing=await invoke('browser_pairing');assert.equal(pairing.error,null);
@@ -28,6 +33,7 @@ try {
   await main.getByLabel(/^Playback source/).selectOption('desktop');
   await main.getByLabel(/^Player /).selectOption(session.id);
   await main.getByRole('button',{name:'Floating lyrics',exact:true}).click();
+  await main.getByRole('button',{name:'Appearance',exact:true}).click();
   await main.getByRole('button',{name:'Caption',exact:true}).click();
   await expect(main.locator('.player-track strong')).toHaveText(session.title);
   record('Native IPC discovers the authenticated companion session');
@@ -49,7 +55,7 @@ try {
   await main.getByRole('button',{name:'Behavior',exact:true}).click();
   await main.getByLabel('Import lyrics',{exact:true}).setInputFiles({name:'native.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:00.00]First test line\n[00:05.00]Native synchronized line')});
   await expect(main.getByTestId('active-lyric')).toHaveText('Native synchronized line');
-  await main.getByRole('button',{name:'Open desktop overlay'}).click();
+  await main.getByRole('button',{name:'Show overlay'}).click();
   await expect.poll(()=>context.pages().some(p=>p.url().includes('overlay'))).toBe(true);
   const overlay=context.pages().find(p=>p.url().includes('overlay'));
   await expect(overlay.getByTestId('active-lyric')).toHaveText('Native synchronized line');

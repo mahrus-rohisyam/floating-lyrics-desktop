@@ -149,14 +149,32 @@ test('works without persistent storage',async({page})=>{
   await page.addInitScript(()=>{Storage.prototype.setItem=()=>{throw new DOMException('Disabled','SecurityError');};});await page.reload();
   await expect(page.getByText('Session only',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Play',exact:true}).click();await expect(page.getByTestId('playback-time')).not.toHaveText('0:00');
 });
-test('download route, help dialog, mobile layout and reduced motion',async({page})=>{
-  await page.goto('/download');await page.setViewportSize({width:375,height:812});await page.emulateMedia({reducedMotion:'reduce'});
+test('demo help, mobile layout and reduced motion',async({page})=>{
+  await page.setViewportSize({width:375,height:812});await page.emulateMedia({reducedMotion:'reduce'});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
   await page.getByRole('button',{name:'Demo help'}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).not.toBeVisible();
   await page.getByRole('button',{name:'Focus Island'}).click();await page.getByRole('button',{name:'Expand Focus Island'}).click();await expect(page.getByTestId('island')).toHaveAttribute('data-expanded','true');
   const island=(await page.getByTestId('island').boundingBox())!;expect(island.x).toBeGreaterThanOrEqual(0);expect(island.x+island.width).toBeLessThanOrEqual(375);
-  await expect(page.getByRole('button',{name:'Build not available yet'}).first()).toBeDisabled();
   await page.screenshot({path:'test-results/mobile.png',fullPage:true});
+});
+test('landing shows features, steps, demo route, and accessible mobile navigation',async({page})=>{
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.goto('/');
+  await expect(page.getByRole('heading',{level:1})).toContainText('Stay with the song');
+  await expect(page.locator('#features article')).toHaveCount(6);
+  await expect(page.locator('#how-it-works article')).toHaveCount(4);
+  await expect(page.getByRole('link',{name:'See desktop builds'})).toHaveAttribute('href',/github\.com\/mahrus-rohisyam\/floating-lyrics-desktop\/releases/);
+  await page.setViewportSize({width:375,height:812});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+  await page.getByRole('button',{name:'Open menu'}).click();
+  await expect(page.getByRole('navigation',{name:'Site navigation'}).getByRole('link',{name:'Features'})).toBeVisible();
+  await page.getByRole('navigation',{name:'Site navigation'}).getByRole('link',{name:'How it works'}).click();
+  await expect(page).toHaveURL(/#how-it-works$/);
+  await expect(page.getByRole('button',{name:'Open menu'})).toHaveAttribute('aria-expanded','false');
+  const results=await new AxeBuilder({page}).analyze();expect(results.violations.filter(v=>['critical','serious'].includes(v.impact||''))).toEqual([]);
+  await page.screenshot({path:'test-results/landing-mobile.png',fullPage:true});
+  await page.goto('/download');await expect(page.getByRole('heading',{level:1})).toContainText('Stay with the song');
+  await page.getByRole('link',{name:'Explore the live demo'}).click();await expect(page).toHaveURL(/\/demo$/);
 });
 test('no serious accessibility violations on default layout',async({page})=>{
   const results=await new AxeBuilder({page}).analyze();expect(results.violations.filter(v=>['critical','serious'].includes(v.impact||''))).toEqual([]);

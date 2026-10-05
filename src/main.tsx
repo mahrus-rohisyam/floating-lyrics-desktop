@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { native } from './native';
 import '@fontsource/dm-sans/latin-400.css';
 import '@fontsource/dm-sans/latin-500.css';
 import '@fontsource/dm-sans/latin-600.css';
@@ -9,4 +10,6 @@ import '@fontsource/manrope/latin-600.css';
 import '@fontsource/manrope/latin-700.css';
 import '@fontsource/manrope/latin-800.css';
 import './styles.css';
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
+const Landing = React.lazy(() => import('./Landing'));
+const landingRoute = !native && (location.pathname === '/' || location.pathname === '/download');
+createRoot(document.getElementById('root')!).render(<React.StrictMode>{landingRoute ? <Suspense fallback={<div className="landing-loading">Floating Lyrics</div>}><Landing/></Suspense> : <App/>}</React.StrictMode>);

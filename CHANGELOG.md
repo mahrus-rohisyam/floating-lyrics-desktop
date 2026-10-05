@@ -2,6 +2,8 @@
 
 ## Unreleased local preview
 
+- Split the web landing page from the interactive `/demo`, with feature and setup sections, responsive layout and reduced-motion-aware GSAP transitions. The static output is ready for Vercel deployment.
+- Replaced the desktop marketing/playground page with a focused customization Studio; playback and pairing controls now live inside Behavior settings.
 - Added a skippable four-step onboarding tour with a Quick tour replay control.
 - Desktop now opens the Caption overlay at startup by default, with a saved toggle to disable automatic opening.
 - Caption is now the default: only each lyric line gets a dark background, with smooth vertical movement and a slight blur on adjacent lines. The larger panel styles remain optional.

@@ -10,7 +10,7 @@ export function Tour({ open, desktop, reducedMotion, onClose }: { open: boolean;
   const heading = useRef<HTMLHeadingElement>(null);
   const steps: Step[] = [
     { title: 'Your lyrics are ready', description: desktop ? 'The transparent Caption overlay opens automatically above your desktop. Start a song in a supported player to see its lyrics.' : 'This preview starts in Caption mode. Play a sample to see synced words on the desktop scene.', target: 'scene' },
-    { title: 'Play a song', description: desktop ? 'Choose a desktop media session below, or switch to Demo samples to explore without a player.' : 'Use Play, seek, or select another sample. The current lyric follows the music.', target: 'player' },
+    { title: 'Play a song', description: desktop ? 'Your player appears here. To choose a source or try Demo samples, open Behavior → Playback & connections.' : 'Use Play, seek, or select another sample. The current lyric follows the music.', target: 'player' },
     { title: 'Make it yours', description: 'Choose Caption, change the type and layout, or press Alt+Shift+C to drag and resize the lyrics.', target: 'settings' },
     { title: 'Stay focused', description: 'Switch to Focus Island for a fixed, compact view. Hover it for the song title and playback controls.', target: 'modes' },
   ];
