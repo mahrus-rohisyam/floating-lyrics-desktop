@@ -1,0 +1,22 @@
+﻿[
+    {
+        "Path":  "D:\\dev\\floating-lyrics\\src\\App.tsx",
+        "Hash":  "A939F659B532E565CC5EA9E0034D4D04B77B8CE7B62EFDB4C26B62487B748FBD"
+    },
+    {
+        "Path":  "D:\\dev\\floating-lyrics\\src\\useNativePlayer.ts",
+        "Hash":  "C6466BD4926994374D8D3C4BDFD7715E49035CDD9F515A8881990D54B8E1D375"
+    },
+    {
+        "Path":  "D:\\dev\\floating-lyrics\\src-tauri\\src\\lib.rs",
+        "Hash":  "1A5483ED06FFF600C3167642B0C5715D867E12535B339D36CED1D8CDCC570FCA"
+    },
+    {
+        "Path":  "D:\\dev\\floating-lyrics\\scripts\\native-smoke.mjs",
+        "Hash":  "2D16D29805C9C028667B89F9B58CC57068B982DB26B73E6CEF8E254519AABD72"
+    },
+    {
+        "Path":  "D:\\dev\\floating-lyrics\\scripts\\extension-smoke.mjs",
+        "Hash":  "8143315065731A56D16F28B24DC80BB17E96BAA20DA089D38A270027E518DF00"
+    }
+]

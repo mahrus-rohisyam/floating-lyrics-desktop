@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-04T17:58:26.874Z",
+  "fixture": true,
+  "results": [
+    "Unpacked extension publishes real media duration and metadata through authenticated bridge",
+    "Native play command crosses extension worker and content script to media element",
+    "Windows WASAPI loopback produces nonzero FFT bands during playback",
+    "Pause, next and previous complete with acknowledgements and refreshed metadata",
+    "Closing browser removes expired extension session"
+  ]
+}

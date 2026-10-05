@@ -1,0 +1,1 @@
+document.querySelector('#pair').addEventListener('submit',async event=>{event.preventDefault();const token=document.querySelector('#token').value.trim();if(!/^[a-f0-9]{64}$/.test(token))return;await chrome.storage.local.set({token});document.querySelector('#status').textContent='Pairing saved. Keep YouTube Music open. Your desktop app will show the connected tab.';});

@@ -1,0 +1,12 @@
+{
+  "date": "2026-10-04T17:57:09.897Z",
+  "platform": "win32",
+  "results": [
+    "Loopback bridge rejects missing token and website origin",
+    "Native IPC discovers the authenticated companion session",
+    "UI playback receives actual bridge acknowledgements; stale title and unsupported stop rejected",
+    "Separate native overlay shares selected player and imported lyrics",
+    "Native Island expands, displays title and honors player capabilities",
+    "Disconnected companion expires instead of leaving a stale session"
+  ]
+}

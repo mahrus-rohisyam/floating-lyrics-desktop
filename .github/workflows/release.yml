@@ -1,0 +1,45 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            args: --bundles nsis
+          - os: macos-latest
+            args: --target universal-apple-darwin --bundles dmg
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+      - run: npm ci
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tauriScript: npm run tauri --
+          args: ${{ matrix.args }}
+          tagName: ${{ github.ref_name }}
+          releaseName: Floating Lyrics ${{ github.ref_name }}
+          releaseBody: |
+            Alpha build. Installers are unsigned, so Windows SmartScreen / macOS Gatekeeper will warn on first launch.
+            Shift+C customizes the overlay, Shift+F toggles Focus mode (both are global shortcuts while the app runs).
+            See CHANGELOG.md for details and known limitations.
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          releaseDraft: false

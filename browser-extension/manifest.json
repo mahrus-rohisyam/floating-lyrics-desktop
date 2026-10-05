@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Floating Lyrics — YouTube Music companion",
+  "version": "0.1.0",
+  "description": "Connect the active YouTube Music tab to your local Floating Lyrics desktop app.",
+  "permissions": ["storage"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html" },
+  "content_scripts": [{ "matches": ["https://music.youtube.com/*"], "js": ["content.js"] }]
+}
