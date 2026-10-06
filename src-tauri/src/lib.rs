@@ -1,6 +1,7 @@
 mod media;
 mod bridge;
 mod spectrum;
+mod lyrics;
 use std::{sync::Arc,time::Duration};
 use tauri::{Emitter, Manager, menu::{Menu,MenuItem}, tray::TrayIconBuilder, WebviewUrl, WebviewWindowBuilder};
 
@@ -26,16 +27,7 @@ fn set_spectrum_enabled(app:tauri::AppHandle,state:tauri::State<'_,spectrum::Spe
 
 #[tauri::command]
 async fn find_lyrics(title:String,artist:String,album:String,duration:f64)->Result<Vec<serde_json::Value>,String>{
-    if title.len()>1024||artist.len()>1024||album.len()>1024{return Err("Track metadata too long".into());}
-    let client=reqwest::Client::builder().timeout(Duration::from_secs(8)).user_agent("FloatingLyrics/0.1.0").build().map_err(|e|e.to_string())?;
-    if duration.is_finite()&&duration>0.0 {
-        let response=client.get("https://lrclib.net/api/get").query(&[("track_name",title.clone()),("artist_name",artist.clone()),("album_name",album.clone()),("duration",duration.round().to_string())]).send().await.map_err(|e|e.to_string())?;
-        if response.status().is_success(){return Ok(vec![response.json().await.map_err(|e|e.to_string())?]);}
-        if response.status()!=reqwest::StatusCode::NOT_FOUND{return Err(format!("Lyrics provider returned {}",response.status()));}
-    }
-    let response=client.get("https://lrclib.net/api/search").query(&[("track_name",title),("artist_name",artist)]).send().await.map_err(|e|e.to_string())?;
-    if !response.status().is_success(){return Err(format!("Lyrics provider returned {}",response.status()));}
-    let mut items:Vec<serde_json::Value>=response.json().await.map_err(|e|e.to_string())?;items.truncate(20);Ok(items)
+    lyrics::find(title,artist,album,duration).await
 }
 #[tauri::command]
 async fn open_overlay(app:tauri::AppHandle)->Result<(),String>{

@@ -1,5 +1,15 @@
 # Validation — 0.1.0 implementation
 
+## 0.1.0-alpha.3 — 2026-10-07
+
+- `npm.cmd test`: 16/16 passed.
+- `npm.cmd run build`: production frontend build passed.
+- Edge Playwright: all 21 scenarios passed, including plain lyric scrolling without a visible scrollbar. On this Windows runner, Playwright did not exit after printing the last passing test, so the process was stopped during teardown.
+- `cargo test --manifest-path src-tauri/Cargo.toml --lib --offline`: 5/5 passed.
+- `npm.cmd run desktop:build`: produced a Windows x64 NSIS installer and executable with version `0.1.0-alpha.3`. Their hashes and signing status were checked separately; see `artifacts/build-manifest.json` for the installer checksum.
+- Live lyric provider responses, a clean-machine installation, and native player end-to-end behavior were not rechecked for this build. A timed lyric cannot be guaranteed for every song.
+
+
 Environment: Windows 11 x64, Node 24.21, Rust 1.99, WebView2, local C++ Build Tools. Session dated 5 October 2026 (Asia/Jakarta); JSON artifacts use UTC. This report separates executed checks from planned checks.
 
 ## Executed successfully

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getSessions, lookupLyrics, mediaCommand, native, type LyricResult, type Session } from './native';
 import { parseLrc } from './core';
 import { useSharedString } from './useSharedState';
+import { lyricStatus, selectAutomaticLyrics } from './lyricsMatch';
 export function useNativePlayer(enabled: boolean) {
   const [sessions,setSessions]=useState<Session[]>([]);
   const [selected,setSelected]=useSharedString('floating:player','');
@@ -35,20 +36,25 @@ export function useNativePlayer(enabled: boolean) {
     const gen=++generation.current; setChosen(null); setResults([]);
     if(!enabled || !session?.title) { setStatus('Waiting for a player'); return; }
     const cacheKey=`floating:lyrics:${key}`;
-    try { const cache=JSON.parse(localStorage.getItem(cacheKey)||'null'); if(cache) { setChosen(cache); setStatus('Saved lyrics'); return; } } catch { /* storage unavailable */ }
-    setStatus('Finding lyrics…');
+    let cached:LyricResult|null=null;
+    try { cached=JSON.parse(localStorage.getItem(cacheKey)||'null'); } catch { /* storage unavailable */ }
+    if(cached) { setChosen(cached); setStatus(lyricStatus(cached)); }
+    // Keep looking for timed lyrics when only plain text or an instrumental result was cached.
+    if(cached?.syncedLyrics?.trim()) return;
+    if(!cached) setStatus('Finding lyrics…');
     lookupLyrics(session).then(items=>{
       if(gen!==generation.current) return;
       setResults(items);
-      const normalized=(v:string)=>v.normalize('NFKC').toLowerCase().trim();
-      const exact=items.filter(i=>normalized(i.trackName)===normalized(session.title)&&normalized(i.artistName)===normalized(session.artist)&&Math.abs(i.duration-session.duration)<=2);
-      if(exact.length===1) { setChosen(exact[0]); setStatus(exact[0].instrumental?'Instrumental':exact[0].syncedLyrics?'Synced lyrics':'Unsynced lyrics'); }
-      else setStatus(items.length?'Choose the matching version below':'No lyrics found. Import an LRC or TXT file.');
-    }).catch(()=>{if(gen===generation.current)setStatus('Lyrics unavailable. Check your connection or import a file.');});
+      const match=selectAutomaticLyrics(items,session);
+      if(match?.syncedLyrics?.trim() || (match && !cached)) {
+        setChosen(match); setStatus(lyricStatus(match));
+        try { localStorage.setItem(cacheKey,JSON.stringify(match)); } catch { /* optional cache */ }
+      } else if(!cached) setStatus(items.length?'Choose the matching version below':'Lyrics not found. Track details remain visible; you can import LRC or TXT.');
+    }).catch(()=>{if(gen===generation.current&&!cached)setStatus('Lyrics unavailable. Check your connection or import a file.');});
   // The identity key intentionally drives lookup, not the polling object.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[key,enabled,cacheVersion]);
-  const choose=(r:LyricResult)=>{setChosen(r); setStatus(r.syncedLyrics?'Synced lyrics':'Unsynced lyrics'); try{localStorage.setItem(`floating:lyrics:${key}`,JSON.stringify(r));}catch{/* optional cache */}};
+  const choose=(r:LyricResult)=>{setChosen(r); setStatus(lyricStatus(r)); try{localStorage.setItem(`floating:lyrics:${key}`,JSON.stringify(r));}catch{/* optional cache */}};
   const command=async(action:string)=>{
     if(!session||busy.current) return;
     busy.current=true;setPending(true); const commandKey=key;

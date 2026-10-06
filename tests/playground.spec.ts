@@ -4,15 +4,15 @@ test.beforeEach(async({page},testInfo)=>{if(!testInfo.title.startsWith('first-ru
 test('first-run tour can be skipped, resumed, and completed',async({page})=>{
   const tour=page.getByTestId('tour');
   await expect(tour).toBeVisible();
-  await expect(tour.getByRole('heading')).toHaveText('Your lyrics are ready');
+  await expect(tour.getByRole('heading')).toHaveText('Your overlay is ready');
   await tour.getByRole('button',{name:'Next'}).click();
-  await expect(tour.getByRole('heading')).toHaveText('Play a song');
+  await expect(tour.getByRole('heading')).toHaveText('Lyrics search automatically');
   await tour.getByRole('button',{name:'Skip tour'}).click();
   await expect(tour).toHaveCount(0);
   await page.reload();
   await expect(tour).toHaveCount(0);
   await page.getByRole('button',{name:'Quick tour'}).click();
-  await expect(tour.getByRole('heading')).toHaveText('Your lyrics are ready');
+  await expect(tour.getByRole('heading')).toHaveText('Your overlay is ready');
   for(let i=0;i<3;i++)await tour.getByRole('button',{name:'Next'}).click();
   await expect(tour.getByRole('heading')).toHaveText('Stay focused');
   await tour.getByRole('button',{name:'Finish'}).click();
@@ -137,6 +137,17 @@ test('imports local LRC safely and applies per-track timing offset',async({page}
   await expect(page.getByTestId('active-lyric')).toHaveText('<script>not code</script>');
   await page.getByLabel('Try a different mood').selectOption('1');await expect(page.getByLabel('Lyric timing offset')).toHaveValue('0');
   await page.getByLabel('Try a different mood').selectOption('0');await expect(page.getByLabel('Lyric timing offset')).toHaveValue('2000');
+});
+test('plain lyrics scroll with playback without a visible scrollbar',async({page})=>{
+  await page.getByRole('button',{name:'Behavior',exact:true}).click();
+  const words=Array.from({length:60},(_,i)=>`Plain lyric line ${i+1}`).join('\n');
+  await page.getByLabel('Import lyrics',{exact:true}).setInputFiles({name:'plain.txt',mimeType:'text/plain',buffer:Buffer.from(words)});
+  const plain=page.locator('.lyric-placeholder');
+  await expect(plain).toContainText('Plain lyric line 60');
+  await expect(plain).toHaveCSS('scrollbar-width','none');
+  expect(await plain.evaluate(e=>e.scrollHeight>e.clientHeight)).toBe(true);
+  await page.getByLabel('Seek',{exact:true}).fill('12.5');
+  await expect.poll(()=>plain.evaluate(e=>e.scrollTop)).toBeGreaterThan(0);
 });
 test('shows an actionable audio error and recovers on another sample',async({page})=>{
   await page.route('**/samples/blue-hour.wav',route=>route.abort());await page.getByLabel('Try a different mood').selectOption('1');

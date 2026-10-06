@@ -6,7 +6,33 @@ on:
 permissions:
   contents: write
 jobs:
+  signing-ready:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require Windows signing configuration before publishing any artifacts
+        env:
+          WINDOWS_SIGN_PFX_BASE64: ${{ secrets.WINDOWS_SIGN_PFX_BASE64 }}
+          WINDOWS_SIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGN_PFX_PASSWORD }}
+          WINDOWS_SIGN_THUMBPRINT: ${{ secrets.WINDOWS_SIGN_THUMBPRINT }}
+          WINDOWS_SIGN_TIMESTAMP_URL: ${{ vars.WINDOWS_SIGN_TIMESTAMP_URL }}
+          WINDOWS_SIGN_COMMAND: ${{ secrets.WINDOWS_SIGN_COMMAND }}
+          WINDOWS_SIGN_PROVIDER: ${{ vars.WINDOWS_SIGN_PROVIDER }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          if [ -n "$WINDOWS_SIGN_COMMAND" ]; then
+            case "$WINDOWS_SIGN_COMMAND" in *%1*) ;; *) echo 'WINDOWS_SIGN_COMMAND must contain %1.'; exit 1;; esac
+            if [ "$WINDOWS_SIGN_PROVIDER" = artifact-signing ]; then
+              test -n "$AZURE_CLIENT_ID" && test -n "$AZURE_CLIENT_SECRET" && test -n "$AZURE_TENANT_ID" || { echo 'Configure Azure Artifact Signing credentials.'; exit 1; }
+            fi
+          else
+            test -n "$WINDOWS_SIGN_PFX_BASE64" && test -n "$WINDOWS_SIGN_PFX_PASSWORD" && test -n "$WINDOWS_SIGN_THUMBPRINT" && test -n "$WINDOWS_SIGN_TIMESTAMP_URL" || { echo 'Configure a signing command or Windows PFX signing secrets before releasing.'; exit 1; }
+          fi
   build:
+    needs: signing-ready
+    env:
+      WINDOWS_SIGN_COMMAND: ${{ secrets.WINDOWS_SIGN_COMMAND }}
     strategy:
       fail-fast: false
       matrix:
@@ -29,17 +55,67 @@ jobs:
         with:
           workspaces: src-tauri -> target
       - run: npm ci
+      - name: Import Windows signing certificate
+        if: runner.os == 'Windows' && env.WINDOWS_SIGN_COMMAND == ''
+        shell: pwsh
+        env:
+          WINDOWS_SIGN_PFX_BASE64: ${{ secrets.WINDOWS_SIGN_PFX_BASE64 }}
+          WINDOWS_SIGN_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGN_PFX_PASSWORD }}
+          FL_WINDOWS_SIGN_THUMBPRINT: ${{ secrets.WINDOWS_SIGN_THUMBPRINT }}
+          FL_WINDOWS_SIGN_TIMESTAMP_URL: ${{ vars.WINDOWS_SIGN_TIMESTAMP_URL }}
+        run: |
+          if (-not $env:WINDOWS_SIGN_PFX_BASE64 -or -not $env:WINDOWS_SIGN_PFX_PASSWORD -or -not $env:FL_WINDOWS_SIGN_THUMBPRINT -or -not $env:FL_WINDOWS_SIGN_TIMESTAMP_URL) {
+            throw 'Windows signing secrets and timestamp URL must be configured before release.'
+          }
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'floating-lyrics-signing.pfx'
+          try {
+            [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:WINDOWS_SIGN_PFX_BASE64))
+            $password = ConvertTo-SecureString $env:WINDOWS_SIGN_PFX_PASSWORD -AsPlainText -Force
+            $certificate = Import-PfxCertificate -FilePath $certificatePath -CertStoreLocation Cert:\CurrentUser\My -Password $password
+            if ($certificate.Thumbprint -ne ($env:FL_WINDOWS_SIGN_THUMBPRINT -replace '\s', '')) { throw 'Imported certificate thumbprint does not match WINDOWS_SIGN_THUMBPRINT.' }
+          } finally {
+            Remove-Item -LiteralPath $certificatePath -ErrorAction SilentlyContinue
+          }
+      - name: Install Azure Artifact Signing CLI
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGN_PROVIDER == 'artifact-signing'
+        run: cargo install artifact-signing-cli --locked
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FL_REQUIRE_WINDOWS_SIGNING: ${{ runner.os == 'Windows' && '1' || '0' }}
+          FL_WINDOWS_SIGN_THUMBPRINT: ${{ secrets.WINDOWS_SIGN_THUMBPRINT }}
+          FL_WINDOWS_SIGN_TIMESTAMP_URL: ${{ vars.WINDOWS_SIGN_TIMESTAMP_URL }}
+          FL_WINDOWS_SIGN_COMMAND: ${{ secrets.WINDOWS_SIGN_COMMAND }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         with:
           tauriScript: npm run tauri --
           args: ${{ matrix.args }}
           tagName: ${{ github.ref_name }}
           releaseName: Floating Lyrics ${{ github.ref_name }}
           releaseBody: |
-            Alpha build. Installers are unsigned, so Windows SmartScreen / macOS Gatekeeper will warn on first launch.
+            Alpha build. Windows installer is signed when the Windows signing job succeeds; a new signer can still trigger SmartScreen until reputation builds. macOS notarization is pending.
             Alt+Shift+C customizes the overlay, Alt+Shift+F toggles Focus mode (both are global shortcuts while the app runs).
             See CHANGELOG.md for details and known limitations.
           prerelease: ${{ contains(github.ref_name, '-') }}
-          releaseDraft: false
+          releaseDraft: true
+      - name: Verify Windows Authenticode signatures
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $application = '.tools/release-target/release/floating-lyrics.exe'
+          $installers = @(Get-ChildItem '.tools/release-target/release/bundle/nsis/*.exe' -ErrorAction Stop)
+          if (-not (Test-Path $application) -or $installers.Count -eq 0) { throw 'Expected Windows application and NSIS installer were not built.' }
+          foreach ($file in @($application) + @($installers.FullName)) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $file
+            if ($signature.Status -ne 'Valid') { throw "Invalid signature for $file`: $($signature.Status)" }
+          }
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the verified release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false

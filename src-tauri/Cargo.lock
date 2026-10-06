@@ -823,7 +823,7 @@ dependencies = [
 
 [[package]]
 name = "floating-lyrics"
-version = "0.1.0-alpha.2"
+version = "0.1.0-alpha.3"
 dependencies = [
  "base64 0.22.1",
  "reqwest 0.12.28",

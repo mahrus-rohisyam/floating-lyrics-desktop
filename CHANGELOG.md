@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-alpha.3 — 2026-10-07
+
+- Added automatic lyric lookup through LRCLIB, lrcmux and lyrics.ovh. Matching timed lyrics take priority; plain lyrics remain available when timed lyrics are missing.
+- Cached plain lyrics no longer stop a later search for a timed version. A timed match replaces the plain display automatically.
+- Plain lyrics scroll gradually with playback, and the overlay scrollbar is hidden.
+- Updated the landing page and onboarding to explain automatic lyric search and fallback behavior.
+- Prepared Windows code signing integration and release checks. Signing availability for this build is stated on its release page.
+
 ## 0.1.0-alpha.2 — 2026-10-05
 
 - Split the web landing page from the interactive `/demo`, with feature and setup sections, responsive layout and reduced-motion-aware GSAP transitions. The static output is ready for Vercel deployment.
