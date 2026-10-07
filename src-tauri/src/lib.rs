@@ -43,7 +43,7 @@ fn create_overlay(app:tauri::AppHandle,start:Option<&str>)->Result<(),String>{
     let url=match start{Some(action)=>format!("index.html?overlay=1&start={action}"),None=>"index.html?overlay=1".into()};
     WebviewWindowBuilder::new(&app,"overlay",WebviewUrl::App(url.into()))
         .title("Floating Lyrics overlay").inner_size(560.0,220.0).min_inner_size(160.0,48.0)
-        .decorations(false).transparent(true).shadow(false).always_on_top(true).skip_taskbar(true).resizable(true).focused(false).build().map_err(|e|e.to_string())?;
+        .decorations(false).transparent(true).shadow(false).always_on_top(true).visible_on_all_workspaces(true).skip_taskbar(true).resizable(true).focused(false).build().map_err(|e|e.to_string())?;
     Ok(())
 }
 fn route_shortcut(app:&tauri::AppHandle,action:&'static str){
