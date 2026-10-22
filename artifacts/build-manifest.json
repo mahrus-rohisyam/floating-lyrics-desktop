@@ -1,10 +1,11 @@
-﻿{
-    "version":  "0.1.0-alpha.2",
-    "artifact":  "artifacts/Floating-Lyrics-Preview-0.1.0-alpha.2-Windows-x64.exe",
-    "bytes":  6284901,
-    "sha256":  "a3918e516e4de9110670ca5b1ee9f2dcdf0f4dda437ea722b7d6d5cd8a6badbe",
+{
+    "version":  "0.1.0-alpha.3",
+    "artifact":  "artifacts/Floating-Lyrics-Preview-0.1.0-alpha.3-Windows-x64.exe",
+    "bytes":  6304633,
+    "sha256":  "176b437e53bf2ecd980ffb8527c91ff0d7a6eb0daec506ad32a22f474cbb5a61",
     "signed":  false,
-    "webE2e":  "19/19 Edge, 1/1 mocked Studio; production landing motion smoke passed",
-    "nativeFixture":  "Two visible native windows at startup; WebView2 CDP unavailable",
-    "extensionFixture":  "6/6 on previous preview; not rerun"
+    "webE2e":  "21/21 Edge scenarios passed; Playwright Windows teardown required stopping the process after results",
+    "rustTests":  "5/5 passed",
+    "nativeFixture":  "Not rerun for alpha.3",
+    "extensionFixture":  "Not rerun for alpha.3"
 }
